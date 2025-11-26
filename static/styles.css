@@ -2108,6 +2108,12 @@ p, label, input, select, textarea {
     width: 120px;
     height: 120px;
     border-radius: 50%;
+    overflow: hidden; /* Prevents any overflow from making it oval */
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
 }
 
 .profile-pic-overlay {
@@ -2119,6 +2125,7 @@ p, label, input, select, textarea {
     background: rgba(0, 0, 0, 0.5);
     border-radius: 50%;
     opacity: 0;
+    object-fit: cover;
     transition: opacity 0.3s ease;
     display: flex;
     justify-content: center;
@@ -2376,7 +2383,7 @@ footer {
 
         .search-bar .material-icons {
             position: absolute;
-            left: 0.75rem;
+            left: 1.6rem;
             top: 50%;
             transform: translateY(-50%);
             color: #999;

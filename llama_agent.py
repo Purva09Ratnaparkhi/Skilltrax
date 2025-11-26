@@ -14,4 +14,15 @@ def roadmap_gen(prompt):
     # for response in response_stream:
     #     print(response['message']['content'], end='', flush=True) 
     return json.loads(response['message']['content'])
+
+def roadmap_gen_pro(syllabus):
+    response = client.chat(
+        model='syllabus_pro', 
+        messages=[{'role': 'user', 'content': syllabus}], 
+        stream=False
+    )
+
+    # for response in response_stream:
+    #     print(response['message']['content'], end='', flush=True) 
+    return json.loads(response['message']['content'])
         

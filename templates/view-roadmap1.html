@@ -438,6 +438,9 @@
                                 step-id="{{ step.id }}">
                                 <span class="material-icons">quiz</span>
                                 Quiz
+                                {% if quiz_scores.get(step.id) is not none %}
+                                <span class="score-pill">{{ quiz_scores[step.id] }}%</span>
+                                {% endif %}
                             </a>
 
                             {% if step.status == 'in_progress' %}

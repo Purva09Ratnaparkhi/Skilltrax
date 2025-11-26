@@ -1,42 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SkillTrax - Profile</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
 </head>
+
 <body>
     <div class="home-container">
         <!-- Navigation Bar -->
-        <nav class="navbar">
-            <div class="nav-left">
-                <a href="home.html" class="logo">
-                    <span class="material-icons">school</span>
-                    SkillTrax
-                </a>
-            </div>
-            <div class="nav-middle">
-                <a href="home.html" class="nav-link">Home</a>
-                <a href="create-roadmap.html" class="nav-link">Roadmaps</a>
-                <a href="generated-roadmap.html" class="nav-link">
-                    <span class="material-icons">emoji_events</span>
-                    Syllabus Pro
-                </a>
-                <a href="profile.html" class="nav-link active">Profile</a>
-            </div>
-            <div class="nav-right">
-                <button class="theme-toggle" onclick="toggleTheme()">
-                    <span class="material-icons" id="themeIcon">dark_mode</span>
-                </button>
-                <a href="index.html" class="nav-link">
-                    <span class="material-icons">logout</span>
-                    Logout
-                </a>
-            </div>
-        </nav>
+        <header>
+            <nav>
+                <div class="logo">SkillTrax</div>
+                <div class="nav-links">
+                    <a href="{{ url_for('dashboard') }}">Dashboard</a>
+                    <a href="{{ url_for('create_roadmap')}}">Create Roadmap</a>
 
+                    <a href="{{ url_for('syllabus') }}" class="">
+                        <i class="fas fa-crown"></i> Syllabus pro
+                    </a>
+                    <a href="{{url_for('profile')}}" class="active">Profile</a>
+
+                </div>
+                <div class="user-menu">
+                    <span>Welcome, {{ user.name }}</span>
+                    <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+                </div>
+            </nav>
+        </header>
         <!-- Main Content -->
         <main class="main-content">
             <div class="profile-container">
@@ -44,27 +40,28 @@
                 <div class="profile-header">
                     <div class="profile-info">
                         <div class="profile-pic-container">
-                            <img src="assets/profile-pic.jpg" alt="Profile Picture" class="profile-pic" id="profilePic">
+                            <img src="{{ url_for('static', filename='assets/user.svg') }}" alt="Profile Picture"
+                                class="profile-pic" id="profilePic">
                             <div class="profile-pic-overlay">
                                 <label for="profilePicInput" class="change-pic-btn">
                                     <span class="material-icons">photo_camera</span>
                                 </label>
-                                <input type="file" id="profilePicInput" accept="image/*" style="display: none;">
+                                <!-- <input type="file" id="profilePicInput" accept="image/*" style="display: none;"> -->
                             </div>
                         </div>
                         <div class="profile-details">
-                            <h1 id="profileName">Gaurav</h1>
-                            <p class="email" id="profileEmail">gaurav@email.com</p>
+                            <h1 id="profileName">{{ user.name }}</h1>
+                            <p class="email" id="profileEmail">{{ user.email}}</p>
                             <div class="profile-tags">
-                                <span class="profile-tag" id="profileType">Professional</span>
-                                <span class="profile-bio" id="profileBio">I am a learner</span>
+                                <span class="profile-tag" id="profileType">Student</span>
+                                <span class="profile-bio" id="profileBio">I am a Learner</span>
                             </div>
                         </div>
                     </div>
-                    <button class="edit-profile-btn" onclick="openEditModal()">
+                    <!-- <button class="edit-profile-btn" onclick="openEditModal()">
                         <span class="material-icons">edit</span>
                         Edit Profile
-                    </button>
+                    </button> -->
                 </div>
 
                 <!-- Learning Roadmaps Section -->
@@ -83,100 +80,85 @@
                         </div>
                     </div>
 
+                    <!-- Roadmaps Grid -->
                     <div class="roadmaps-grid">
-                        <!-- Web Development Roadmap -->
-                        <div class="roadmap-card">
-                            <div class="roadmap-header">
-                                <h3>Web Development Mastery</h3>
-                                <span class="status-tag completed">Completed</span>
+                        {% if has_roadmaps %}
+                        {% for roadmap in roadmaps %}
+                        <div class="roadmap-card" data-category="{{ roadmap.category.lower() }}"
+                            data-title="{{ roadmap.title.lower() }}" data-id="{{ roadmap.id }}">
+                            <div class="roadmap-tag">{{ roadmap.category }}</div>
+                            <h3>{{ roadmap.title }}</h3>
+                            <p>{{ roadmap.description }}</p>
+                            <div class="roadmap-footer">
+                                <div class="progress-info"><span
+                                        class="material-icons progress-icon">check_circle</span>{{
+                                    roadmap.progress }}% Complete</div>
+                                <span class="material-icons">chevron_right</span>
                             </div>
-                            <div class="roadmap-progress">
-                                <div class="progress-label">Quiz Score</div>
-                                <div class="progress-value">92%</div>
-                            </div>
-                            <div class="topics-progress">
-                                <div class="progress-label">Topics Completed</div>
-                                <div class="progress-bar">
-                                    <div class="progress-fill" style="width: 100%"></div>
-                                </div>
-                                <div class="progress-value">24/24</div>
-                            </div>
+                            <div class="creation-date">Created {{ roadmap.created_at.strftime('%d %b %Y') }}</div>
                         </div>
-
-                        <!-- Data Science Roadmap -->
-                        <div class="roadmap-card">
-                            <div class="roadmap-header">
-                                <h3>Data Science Fundamentals</h3>
-                                <span class="status-tag in-progress">In Progress</span>
-                            </div>
-                            <div class="roadmap-progress">
-                                <div class="progress-label">Quiz Score</div>
-                                <div class="progress-value">85%</div>
-                            </div>
-                            <div class="topics-progress">
-                                <div class="progress-label">Topics Completed</div>
-                                <div class="progress-bar">
-                                    <div class="progress-fill" style="width: 53%"></div>
-                                </div>
-                                <div class="progress-value">16/30</div>
-                            </div>
-                        </div>
+                        {% endfor %}
+                        {% else %}
+                        <p>No roadmaps found. Start your journey now!</p>
+                        {% endif %}
                     </div>
+
                 </div>
             </div>
-        </main>
+    </div>
+    </main>
 
-        <!-- Footer -->
-        <footer class="footer">
-            <div class="footer-left">
-                <span class="material-icons">school</span>
-                SkillTrax
-            </div>
-            <div class="footer-right">
-                <a href="#">About</a>
-                <a href="#">Privacy</a>
-                <a href="#">Terms</a>
-                <a href="#">Contact</a>
-            </div>
-        </footer>
-
-        <!-- Edit Profile Modal -->
-        <div class="modal" id="editProfileModal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2>Edit Profile</h2>
-                    <button class="close-btn" onclick="closeEditModal()">
-                        <span class="material-icons">close</span>
-                    </button>
-                </div>
-                <form id="editProfileForm" onsubmit="saveProfile(event)">
-                    <div class="form-group">
-                        <label for="editName">Full Name</label>
-                        <input type="text" id="editName" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="editEmail">Email</label>
-                        <input type="email" id="editEmail" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="editType">Profession</label>
-                        <select id="editType" required>
-                            <option value="Student">Student</option>
-                            <option value="Professional">Professional</option>
-                            <option value="Teacher">Teacher</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="editBio">Bio</label>
-                        <textarea id="editBio" rows="3"></textarea>
-                    </div>
-                    <div class="modal-actions">
-                        <button type="button" class="cancel-btn" onclick="closeEditModal()">Cancel</button>
-                        <button type="submit" class="save-btn">Save Changes</button>
-                    </div>
-                </form>
-            </div>
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-left">
+            <span class="material-icons">school</span>
+            SkillTrax
         </div>
+        <div class="footer-right">
+            <a href="#">About</a>
+            <a href="#">Privacy</a>
+            <a href="#">Terms</a>
+            <a href="#">Contact</a>
+        </div>
+    </footer>
+
+    <!-- Edit Profile Modal -->
+    <div class="modal" id="editProfileModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Edit Profile</h2>
+                <button class="close-btn" onclick="closeEditModal()">
+                    <span class="material-icons">close</span>
+                </button>
+            </div>
+            <form id="editProfileForm" onsubmit="saveProfile(event)">
+                <div class="form-group">
+                    <label for="editName">Full Name</label>
+                    <input type="text" id="editName" placeholder={{user.name}} readonly>
+                </div>
+                <div class="form-group">
+                    <label for="editEmail">Email</label>
+                    <input type="email" id="editEmail" placeholder={{user.email}} readonly>
+                </div>
+                <div class="form-group">
+                    <label for="editType">Profession</label>
+                    <select id="editType" name="user_type" required>
+                        <option value="Student">Student</option>
+                        <option value="Professional">Professional</option>
+                        <option value="Teacher">Teacher</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="editBio">Bio</label>
+                    <textarea id="editBio" rows="3"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="cancel-btn" onclick="closeEditModal()">Cancel</button>
+                    <button type="submit" class="save-btn" onclick="saveProfile(event)">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
     </div>
 
     <script>
@@ -184,7 +166,7 @@
         function toggleTheme() {
             const body = document.body;
             const themeIcon = document.getElementById('themeIcon');
-            
+
             if (body.classList.contains('dark-theme')) {
                 body.classList.remove('dark-theme');
                 themeIcon.textContent = 'dark_mode';
@@ -200,7 +182,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             const savedTheme = localStorage.getItem('theme');
             const themeIcon = document.getElementById('themeIcon');
-            
+
             if (savedTheme === 'dark') {
                 document.body.classList.add('dark-theme');
                 themeIcon.textContent = 'light_mode';
@@ -210,13 +192,13 @@
         // Profile Edit Functionality
         function openEditModal() {
             const modal = document.getElementById('editProfileModal');
-            const name = document.getElementById('profileName').textContent;
-            const email = document.getElementById('profileEmail').textContent;
+            //const name = document.getElementById('profileName').textContent;
+            //const email = document.getElementById('profileEmail').textContent;
             const type = document.getElementById('profileType').textContent;
             const bio = document.getElementById('profileBio').textContent;
 
-            document.getElementById('editName').value = name;
-            document.getElementById('editEmail').value = email;
+            //document.getElementById('editName').value = name;
+            //document.getElementById('editEmail').value = email;
             document.getElementById('editType').value = type;
             document.getElementById('editBio').value = bio;
 
@@ -231,30 +213,52 @@
         function saveProfile(event) {
             event.preventDefault();
 
-            const name = document.getElementById('editName').value;
-            const email = document.getElementById('editEmail').value;
-            const type = document.getElementById('editType').value;
-            const bio = document.getElementById('editBio').value;
+            const formData = new FormData();
+            //formData.append('name', document.getElementById('editName').value);
+            //formData.append('email', document.getElementById('editEmail').value);
+            formData.append('user_type', document.getElementById('editType').value);
+            formData.append('bio', document.getElementById('editBio').value);
 
-            document.getElementById('profileName').textContent = name;
-            document.getElementById('profileEmail').textContent = email;
-            document.getElementById('profileType').textContent = type;
-            document.getElementById('profileBio').textContent = bio;
-
-            closeEditModal();
+            fetch('/update-profile', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        //document.getElementById('profileName').textContent = formData.get('name');
+                        //document.getElementById('profileEmail').textContent = formData.get('email');
+                        document.getElementById('profileType').textContent = formData.get('user_type');
+                        document.getElementById('profileBio').textContent = formData.get('bio');
+                        closeEditModal();
+                    } else {
+                        alert("Failed to update profile. Try again.");
+                    }
+                })
+                .catch(error => console.error('Error:', error));
         }
 
-        // Profile Picture Change
-        document.getElementById('profilePicInput').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    document.getElementById('profilePic').src = e.target.result;
-                }
-                reader.readAsDataURL(file);
-            }
+
+        // // Profile Picture Change
+        // document.getElementById('profilePicInput').addEventListener('change', function (e) {
+        //     const file = e.target.files[0];
+        //     if (file) {
+        //         const reader = new FileReader();
+        //         reader.onload = function (e) {
+        //             document.getElementById('profilePic').src = e.target.result;
+        //         }
+        //         reader.readAsDataURL(file);
+        //     }
+        // });
+
+        // Roadmap card interactivity - updated to redirect instead of alert
+        document.querySelectorAll('.roadmap-card').forEach(card => {
+            card.addEventListener('click', function () {
+                const roadmapId = this.getAttribute('data-id');
+                window.location.href = "{{ url_for('view_roadmap', roadmap_id=0) }}".replace('0', roadmapId);
+            });
         });
     </script>
 </body>
-</html> 
+
+</html>

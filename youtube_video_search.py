@@ -32,7 +32,7 @@ def search_youtube_lectures(subject, topic, description, language="en", max_resu
             q=search_query,
             type="video",
             videoDefinition="high",
-            videoDuration="long",
+            videoDuration="medium",
             relevanceLanguage=language,
             order="relevance"
         )

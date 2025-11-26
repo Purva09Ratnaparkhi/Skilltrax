@@ -2,14 +2,15 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 from flask_sqlalchemy import SQLAlchemy
 from flask_session import Session
 from werkzeug.security import generate_password_hash, check_password_hash
-from werkzeug.utils import secure_filename
 import os
 from datetime import timedelta
-import datetime
-import re
-import logging
 from flask_migrate import Migrate
 from roadmap_generator import gen_roadmap
+import os
+import tempfile
+from syllabus_pro import generator_pro
+from quiz_generator import generate_quiz
+import asyncio
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -43,6 +44,18 @@ class User(db.Model):
 
     def __repr__(self):
         return f'<User {self.email}>'
+    
+# Quiz Model
+class Quiz(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    step_id = db.Column(db.Integer, db.ForeignKey('roadmap_step.id'), nullable=False)
+    quiz_data = db.Column(db.JSON, nullable=False)  # Store the quiz JSON data
+    score = db.Column(db.Integer, nullable=True)    # Store the user's score (can be null initially)
+    total_questions = db.Column(db.Integer, nullable=True)  # Total number of questions
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    
+    # Relationship with RoadmapStep
+    step = db.relationship('RoadmapStep', backref=db.backref('quiz', uselist=False))
 
 # Roadmap Model
 class Roadmap(db.Model):
@@ -285,6 +298,64 @@ def create_roadmap():
 
     return render_template("create-roadmap.html", user=user)
 
+# @app.route('/roadmap/<int:roadmap_id>')
+# def view_roadmap(roadmap_id):
+#     if 'user_id' not in session:
+#         flash("You must log in first!")
+#         return redirect(url_for('login'))
+    
+#     user = User.query.get(session['user_id'])
+#     if not user:
+#         flash("User not found, please log in again.")
+#         return redirect(url_for('login'))
+    
+#     roadmap = Roadmap.query.get_or_404(roadmap_id)
+    
+#     # Ensure user owns this roadmap
+#     if roadmap.user_id != user.id:
+#         flash("You don't have permission to view this roadmap.")
+#         return redirect(url_for('dashboard'))
+    
+#     # Check if we're receiving a score from a completed quiz
+#     if 'score' in request.args and 'step_id' in request.args:
+#         score = int(request.args.get('score'))
+#         step_id = int(request.args.get('step_id'))
+#         print(f"score: {score}")
+        
+#         # Find the quiz record for this step
+#         quiz = Quiz.query.filter_by(step_id=step_id).first()
+        
+#         if quiz:
+#             # Update the quiz score
+#             print("in")
+#             quiz.score = score
+#             db.session.commit()
+#             flash(f"Your quiz score has been recorded: {score}", "success")
+#         else:
+#             flash("Quiz record not found", "error")
+    
+#     # Get roadmap steps ordered by their sequence
+#     steps = RoadmapStep.query.filter_by(roadmap_id=roadmap_id).order_by(RoadmapStep.order).all()
+    
+#     # Calculate progress
+#     completed_steps = sum(1 for step in steps if step.status == 'completed')
+#     if steps:
+#         progress_percentage = int((completed_steps / len(steps)) * 100)
+#     else:
+#         progress_percentage = 0
+    
+#     # Update roadmap progress
+#     roadmap.progress = progress_percentage
+#     db.session.commit()
+    
+#     return render_template(
+#         'view-roadmap.html',
+#         user=user,
+#         roadmap=roadmap,
+#         steps=steps,
+#         progress=progress_percentage
+#     )
+
 @app.route('/roadmap/<int:roadmap_id>')
 def view_roadmap(roadmap_id):
     if 'user_id' not in session:
@@ -297,15 +368,36 @@ def view_roadmap(roadmap_id):
         return redirect(url_for('login'))
     
     roadmap = Roadmap.query.get_or_404(roadmap_id)
-    
+    # steps = RoadmapStep.query.filter_by(roadmap_id=roadmap_id).order_by(RoadmapStep.order).all()
+
     # Ensure user owns this roadmap
     if roadmap.user_id != user.id:
         flash("You don't have permission to view this roadmap.")
         return redirect(url_for('dashboard'))
     
+    # Check if we're receiving a score from a completed quiz
+    if 'score' in request.args and 'step_id' in request.args:
+        score = int(request.args.get('score'))
+        step_id = int(request.args.get('step_id'))
+        print(f"score: {score}")
+        
+        # Find the quiz record for this step
+        quiz = Quiz.query.filter_by(step_id=step_id).first()
+        
+        if quiz:
+            # Update the quiz score
+            print("in")
+            quiz.score = score
+            db.session.commit()
+            flash(f"Your quiz score has been recorded: {score}", "success")
+        else:
+            flash("Quiz record not found", "error")
+    
     # Get roadmap steps ordered by their sequence
     steps = RoadmapStep.query.filter_by(roadmap_id=roadmap_id).order_by(RoadmapStep.order).all()
-    
+    step_ids = [step.id for step in steps]
+    quizzes = Quiz.query.filter(Quiz.step_id.in_(step_ids)).all()
+    quiz_scores = {quiz.step_id: quiz.score for quiz in quizzes}
     # Calculate progress
     completed_steps = sum(1 for step in steps if step.status == 'completed')
     if steps:
@@ -318,13 +410,13 @@ def view_roadmap(roadmap_id):
     db.session.commit()
     
     return render_template(
-        'view-roadmap.html',
+        'view-roadmap1.html',
         user=user,
         roadmap=roadmap,
         steps=steps,
-        progress=progress_percentage
+        progress=progress_percentage,
+        quiz_scores=quiz_scores 
     )
-
 
 @app.route('/update_step/<int:step_id>', methods=['POST'])
 def update_step_status(step_id):
@@ -464,28 +556,141 @@ def upload_syllabus():
         return redirect(url_for('syllabus'))
     
     if file and allowed_file(file.filename):
-        # Read file content into memory instead of saving
-        file_content = file.read()
-        file_size = len(file_content)
-        formatted_size = format_file_size(file_size)
+        # Save the uploaded file temporarily
+        temp_dir = tempfile.mkdtemp()
+        temp_path = os.path.join(temp_dir, file.filename)
+        file.save(temp_path)
         
-        
-        # logger.info(f"File received: {file.filename} ({formatted_size}) by user {user.id} ({user.email})")
-        print(f"FILE RECEIVED - Name: {file.filename}, Size: {formatted_size}, User: {user.name}")
-        
-       
-        # Render success page
-        upload_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        return render_template(
-            'upload_success.html', 
-            user=user, 
-            filename=file.filename,
-            filesize=formatted_size,
-            upload_time=upload_time
-        )
+        try:
+            # Execute generator_pro method
+            roadmap_response = generator_pro(temp_path)
+            # print("here")
+            # pprint(roadmap_response)
+            
+            # Save roadmap steps to database
+            if roadmap_response and 'roadmap' in roadmap_response:
+
+                # If validation passes, create the roadmap
+                new_roadmap = Roadmap(
+                    title=roadmap_response['subject'],
+                    description = roadmap_response['subject_desc'],
+                    category=roadmap_response['subject'],
+                    level="beginner",
+                    goals="exam preparation",
+                    custom_requirements= "Syllabus",
+                    target_completion= None,
+                    progress=0,
+                    user_id=user.id,
+                )
+
+                db.session.add(new_roadmap)
+                db.session.commit()
+
+                steps = roadmap_response['roadmap']
+                for i, step in enumerate(steps):
+                    # Set the first step to 'in_progress' and others to 'locked'
+                    status = 'in_progress' if i == 0 else 'locked'
+                
+                    roadmap_step = RoadmapStep(
+                        roadmap_id=new_roadmap.id,
+                        title=step['title'],
+                        description=step['description'],
+                        level=step['level'],
+                        resource_link=step.get('res_link', ''),
+                        order=i,
+                        status=status
+                    )
+                    db.session.add(roadmap_step)
+
+                db.session.commit()
+
+                flash("Roadmap created successfully!")
+                return redirect(url_for('view_roadmap', roadmap_id=new_roadmap.id))
+            else:
+                flash("Failed to generate roadmap. Please try again.")
+                return render_template("create-roadmap.html", user=user) 
+        except Exception as e:
+            # Log the error and flash a message
+            print(f"Error processing syllabus: {str(e)}")
+            flash('Error processing the syllabus. Please try again.')
+            return redirect(url_for('syllabus')) 
+        finally:
+            # Clean up temporary file
+            try:
+                os.remove(temp_path)
+                os.rmdir(temp_dir)
+            except Exception as cleanup_error:
+                print(f"Error cleaning up temp file: {cleanup_error}")
     
     flash('Invalid file type. Please upload a PDF, DOCX, or TXT file.')
     return redirect(url_for('syllabus'))
+
+
+
+@app.route('/profile')
+def profile():
+    if 'user_id' not in session:
+        flash("You must log in first!")
+        return redirect(url_for('login'))
+
+    user = User.query.get(session['user_id'])
+    if not user:
+        session.pop('user_id', None)
+        flash("User not found, please log in again.")
+        return redirect(url_for('login'))
+    
+    # Fetch roadmaps where the user is enrolled
+    enrolled_roadmaps = Roadmap.query.filter_by(user_id=user.id).all()
+
+    # Dynamically calculate user progress stats
+    enrolled_courses = len(enrolled_roadmaps)
+    skills_in_progress = sum(1 for roadmap in enrolled_roadmaps if 0 < roadmap.progress < 100)
+    completed_paths = sum(1 for roadmap in enrolled_roadmaps if roadmap.progress == 100)
+
+    # Update user object with the latest stats
+    user.enrolled_courses = enrolled_courses
+    user.skills_in_progress = skills_in_progress
+    user.completed_paths = completed_paths
+    db.session.commit()  # Save changes to the database
+
+    # Check if user has any enrolled roadmaps
+    has_roadmaps = enrolled_courses > 0
+
+    return render_template(
+        'profile.html',
+        user=user,
+        roadmaps=enrolled_roadmaps,
+        has_roadmaps=has_roadmaps
+    )
+
+@app.route("/quiz/<int:step_id>")
+def quiz(step_id):
+    # Find the step by ID
+    step = RoadmapStep.query.get_or_404(step_id)
+    
+    # Check if a quiz already exists for this step
+    existing_quiz = Quiz.query.filter_by(step_id=step.id).first()
+    
+    if existing_quiz:
+        # Use the existing quiz
+        quiz_data = existing_quiz.quiz_data
+    else:
+        # Generate a new quiz using the step's resource link
+        quiz_data = asyncio.run(generate_quiz(step.resource_link))
+        if quiz_data == False:
+            print("Unable to generate quiz")
+            return redirect(url_for('dashboard'))
+        total_que = len(quiz_data["quiz"])
+        # Save the new quiz in the database
+        new_quiz = Quiz(step_id=step.id, quiz_data=quiz_data,total_questions=total_que)
+        db.session.add(new_quiz)
+        db.session.commit()
+    
+    return render_template("quiz.html", quiz=quiz_data, roadmap_id = step.roadmap_id, step_id = step_id)
+
+
 # Run App
 if __name__ == '__main__':
-    app.run(debug=True, threaded=True)
+    app.run(host='0.0.0.0', port=5000,debug=True, threaded=True)
+
+

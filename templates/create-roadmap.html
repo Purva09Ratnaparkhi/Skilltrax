@@ -7,6 +7,8 @@
     <title>SkillTrax - Create Roadmap</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
 </head>
 
 <body>
@@ -16,8 +18,10 @@
             <div class="nav-links">
                 <a href="{{ url_for('dashboard') }}">Dashboard</a>
                 <a href="{{ url_for('create_roadmap')}}" class="active">Create Roadmap</a>
-                <a href="#">Roadmaps</a>
-                <a href="#">Profile</a>
+                <a href="{{ url_for('syllabus') }}">
+                    <i class="fas fa-crown"></i> Syllabus pro
+                </a>
+                <a href="{{ url_for('profile') }}">Profile</a>
             </div>
             <div class="user-menu">
                 <span>Welcome, {{ user.name }}</span>
@@ -133,6 +137,14 @@
     </div>
 
     <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('roadmapForm');
+
+            form.addEventListener('submit', function (e) {
+                // Show loading overlay when form is submitted
+                document.getElementById('loadingOverlay').style.display = 'flex';
+            });
+        });
         // Theme Toggle Functionality
         function toggleTheme() {
             const body = document.body;
@@ -200,6 +212,26 @@
             });
         });
     </script>
+    <!-- Loading Overlay (hidden by default) -->
+    <div id="loadingOverlay"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(255,255,255,0.8); z-index: 1000; justify-content: center; align-items: center; flex-direction: column;">
+        <div
+            style="width: 50px; height: 50px; border: 5px solid #f3f3f3; border-top: 5px solid #2563eb; border-radius: 50%; animation: spin 1s linear infinite;">
+        </div>
+        <p style="margin-top: 20px; font-size: 1.2rem; color: #333;">Generating your roadmap...</p>
+    </div>
+
+    <style>
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
 </body>
 
 </html>

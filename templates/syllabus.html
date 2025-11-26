@@ -7,6 +7,8 @@
     <title>SkillTrax - Dashboard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
     <style>
         /* PDF Uploader CSS */
         body {
@@ -52,7 +54,7 @@
 
         .drop-zone-icon svg {
             margin-bottom: 20px;
-            color: rgb(52,152,219);
+            color: rgb(52, 152, 219);
             width: 64px;
             height: 64px;
         }
@@ -77,12 +79,14 @@
             display: block;
         }
 
-        .file-name, .file-size {
+        .file-name,
+        .file-size {
             margin-top: 10px;
             font-size: 16px;
         }
 
-        .error-message, .success-message {
+        .error-message,
+        .success-message {
             display: none;
             margin-top: 20px;
             padding: 15px;
@@ -117,28 +121,29 @@
         .btn-upload.active {
             display: inline-block;
         }
-        
-        header, footer {
+
+        header,
+        footer {
             flex-shrink: 0;
             width: 100%;
         }
 
-      
+
         @media (max-width: 768px) {
             .card {
                 width: 95%;
                 padding: 20px;
             }
-            
+
             .drop-zone {
                 padding: 40px 20px;
             }
-            
+
             .drop-zone-icon svg {
                 width: 48px;
                 height: 48px;
             }
-            
+
             .drop-zone-text {
                 font-size: 20px;
             }
@@ -154,8 +159,10 @@
             <div class="nav-links">
                 <a href="{{ url_for('dashboard') }}">Dashboard</a>
                 <a href="{{ url_for('create_roadmap')}}">Create Roadmap</a>
-                <a href="#">Roadmaps</a>
-                <a href="{{ url_for('syllabus') }}" class="active">Syllabus</a>
+                <a href="{{ url_for('syllabus') }}" class="active">
+                    <i class="fas fa-crown"></i> Syllabus pro
+                </a>
+                <a href="{{ url_for('profile')}}">Profile</a>
             </div>
             <div class="user-menu">
                 <span>Welcome, {{ user.name }}</span>
@@ -167,11 +174,14 @@
     <div class="main-container">
         <div class="card">
             <h1>Upload Syllabus PDF</h1>
-            <form id="upload-form" action="{{ url_for('upload_syllabus') }}" method="POST" enctype="multipart/form-data">
+            <form id="upload-form" action="{{ url_for('upload_syllabus') }}" method="POST"
+                enctype="multipart/form-data">
                 <div class="upload-container">
                     <div id="drop-zone" class="drop-zone">
                         <div class="drop-zone-icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
                                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                                 <polyline points="17 8 12 3 7 8"></polyline>
                                 <line x1="12" y1="3" x2="12" y2="15"></line>
@@ -179,10 +189,12 @@
                         </div>
                         <div class="drop-zone-text">Drag & Drop PDF here</div>
                         <div class="drop-zone-subtext">or click to browse files</div>
-                        <input type="file" id="pdf-upload" name="syllabus_pdf" class="file-input" accept=".pdf" style="display: none;" />
+                        <input type="file" id="pdf-upload" name="syllabus_pdf" class="file-input" accept=".pdf"
+                            style="display: none;" />
                     </div>
                     <div id="error-message" class="error-message">Please select a valid PDF file.</div>
-                    <div id="success-message" class="success-message">PDF file selected successfully! Click "Upload" to send.</div>
+                    <div id="success-message" class="success-message">PDF file selected successfully! Click "Upload" to
+                        send.</div>
                     <div id="file-info" class="file-info">
                         <div id="file-name" class="file-name"></div>
                         <div id="file-size" class="file-size"></div>
@@ -209,8 +221,16 @@
     </footer>
 
     <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('upload-form');
+
+            form.addEventListener('submit', function (e) {
+                //e.preventDefault(); // Prevent the default form submission
+                document.getElementById('loadingOverlay').style.display = 'flex';
+            });
+        });
         // Add JavaScript for the file uploader functionality
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const dropZone = document.getElementById('drop-zone');
             const fileInput = document.getElementById('pdf-upload');
             const errorMessage = document.getElementById('error-message');
@@ -221,30 +241,30 @@
             const uploadButton = document.getElementById('upload-button');
 
             // Click on drop zone to trigger file input
-            dropZone.addEventListener('click', function() {
+            dropZone.addEventListener('click', function () {
                 fileInput.click();
             });
 
             // Handle file selection
-            fileInput.addEventListener('change', function(e) {
+            fileInput.addEventListener('change', function (e) {
                 handleFiles(e.target.files);
             });
 
             // Handle drag and drop events
-            dropZone.addEventListener('dragover', function(e) {
+            dropZone.addEventListener('dragover', function (e) {
                 e.preventDefault();
                 dropZone.classList.add('drag-over');
             });
 
-            dropZone.addEventListener('dragleave', function() {
+            dropZone.addEventListener('dragleave', function () {
                 dropZone.classList.remove('drag-over');
             });
 
-            dropZone.addEventListener('drop', function(e) {
+            dropZone.addEventListener('drop', function (e) {
                 e.preventDefault();
                 dropZone.classList.remove('drag-over');
                 handleFiles(e.dataTransfer.files);
-                
+
                 // Set the file in the input element for form submission
                 if (e.dataTransfer.files.length > 0 && e.dataTransfer.files[0].type === 'application/pdf') {
                     fileInput.files = e.dataTransfer.files;
@@ -253,17 +273,17 @@
 
             function handleFiles(files) {
                 resetMessages();
-                
+
                 if (files.length === 0) return;
-                
+
                 const file = files[0];
-                
+
                 if (file.type !== 'application/pdf') {
                     errorMessage.classList.add('active');
                     uploadButton.classList.remove('active');
                     return;
                 }
-                
+
                 // Display file info
                 fileName.textContent = 'File: ' + file.name;
                 fileSize.textContent = 'Size: ' + formatFileSize(file.size);
@@ -286,6 +306,26 @@
             }
         });
     </script>
+    <!-- Loading Overlay (hidden by default) -->
+    <div id="loadingOverlay"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(255,255,255,0.8); z-index: 1000; justify-content: center; align-items: center; flex-direction: column;">
+        <div
+            style="width: 50px; height: 50px; border: 5px solid #f3f3f3; border-top: 5px solid #2563eb; border-radius: 50%; animation: spin 1s linear infinite;">
+        </div>
+        <p style="margin-top: 20px; font-size: 1.2rem; color: #333;">Generating Roadmap for you..</p>
+    </div>
+
+    <style>
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
 </body>
 
 </html>

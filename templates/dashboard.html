@@ -7,6 +7,8 @@
     <title>SkillTrax - Dashboard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
 </head>
 
 <body>
@@ -16,8 +18,10 @@
             <div class="nav-links">
                 <a href="{{ url_for('dashboard') }}" class="active">Dashboard</a>
                 <a href="{{ url_for('create_roadmap')}}">Create Roadmap</a>
-                <a href="#">Roadmaps</a>
-                <a href="#">Profile</a>
+                <a href="{{ url_for('syllabus') }}">
+                    <i class="fas fa-crown"></i> Syllabus pro
+                </a>
+                <a href="{{ url_for('profile') }}">Profile</a>
             </div>
             <div class="user-menu">
                 <span>Welcome, {{ user.name }}</span>
@@ -72,8 +76,8 @@
         <div class="action-buttons">
             <button id="create-roadmap-btn" class="create-roadmap-btn"><span
                     class="material-icons">add_circle</span>Create Roadmap</button>
-            <button id="upload-syllabus-btn" class="upload-syllabus-btn"><span
-                    class="material-icons">upload_file</span>Upload Syllabus</button>
+            <button id="upload-syllabus-btn" class="upload-syllabus-btn"><i class="fas fa-crown"></i></span>Upload
+                Syllabus</button>
         </div>
 
         <!-- Roadmaps Grid -->

@@ -1,96 +1,373 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SkillTrax - HTML Basics Quiz</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <title>Quiz - SkillTrax</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+
+    <style>
+        /* Basic styling for the page */
+        body {
+            background-color: #f4f6f9;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        /* Navbar styles */
+        .navbar {
+            background-color: white;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+            padding: 6px 0;
+        }
+
+        .navbar-brand {
+            color: #007bff !important;
+            font-weight: bold;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .nav-link {
+            color: #343a40 !important;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .nav-link:hover {
+            color: #007bff !important;
+        }
+
+        /* Quiz container where the main content is */
+        .quiz-container {
+            max-width: 800px;
+            margin: auto;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Styling for the question text */
+        .question {
+            font-size: 1.4rem;
+            font-weight: 600;
+        }
+
+        /* Answer options */
+        .option {
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+        }
+
+        .option:hover {
+            background: #e9ecef;
+        }
+
+        .option.selected {
+            background: #007bff;
+            color: white;
+        }
+
+        .option.correct {
+            background: #28a745;
+            color: white;
+        }
+
+        .option.incorrect {
+            background: #dc3545;
+            color: white;
+        }
+
+        /* Button for navigating to the next question */
+        .btn-primary {
+            width: 100%;
+            font-size: 1.2rem;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        /* Timer display */
+        .timer {
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: #dc3545;
+            text-align: right;
+        }
+
+        /* Results container */
+        .results-container {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .results-container h2 {
+            color: #007bff;
+            margin-bottom: 20px;
+        }
+
+        .score-display {
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+
+        .feedback {
+            margin: 15px 0;
+            font-size: 1.1rem;
+        }
+    </style>
 </head>
+
 <body>
-    <div class="home-container">
-        <!-- Navigation Bar -->
-        <nav class="navbar">
-            <div class="nav-left">
-                <a href="home.html" class="logo">
-                    <span class="material-icons">school</span>
-                    SkillTrax
-                </a>
-            </div>
-            <div class="nav-middle">
-                <a href="home.html" class="nav-link">Home</a>
-                <a href="roadmaps.html" class="nav-link active">Roadmaps</a>
-                <a href="syllabus-pro.html" class="nav-link">
-                    <span class="material-icons">emoji_events</span>
-                    Syllabus Pro
-                </a>
-                <a href="profile.html" class="nav-link">Profile</a>
-            </div>
-            <div class="nav-right">
-                <a href="index.html" class="nav-link">
-                    <span class="material-icons">logout</span>
-                    Logout
-                </a>
-            </div>
-        </nav>
 
-        <!-- Main Content -->
-        <main class="main-content">
-            <div class="quiz-container">
-                <!-- Back Button -->
-                <a href="generated-roadmap.html" class="back-link">
-                    <span class="material-icons">arrow_back</span>
-                    Back to Roadmap
-                </a>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg">
+        <div class="container">
+            <a class="navbar-brand" href="#">SkillTrax</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="#">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#">Roadmaps</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#">Syllabus Pro</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#">Profile</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
 
-                <!-- Quiz Header -->
-                <div class="quiz-header">
-                    <h1>Web Development Roadmap</h1>
-                    <div class="quiz-info">
-                        <div class="quiz-title">HTML Basics Quiz</div>
-                        <div class="quiz-progress">Question 3 of 10 • Time remaining: 8:45</div>
-                        <div class="quiz-score">Score: 7/10</div>
-                    </div>
+    <!-- Quiz Section -->
+    <div class="container mt-4">
+        <div class="quiz-container">
+            <div id="quiz-content">
+                <div class="timer">Time Remaining: <span id="time">10:00</span></div>
+                <h3 class="text-center">Quiz</h3>
+                <p class="text-muted text-center">Question <span id="current-question-num">1</span> of <span
+                        id="total-questions">{{ quiz['quiz']|length }}</span></p>
+
+                <div class="question mb-3" id="question-text">{{ quiz['quiz'][0]['question'] }}</div>
+
+                <div class="list-group" id="options-container">
+                    {% for option in quiz['quiz'][0]['options'] %}
+                    <div class="list-group-item option">{{ option }}</div>
+                    {% endfor %}
                 </div>
 
-                <!-- Quiz Content -->
-                <div class="quiz-content">
-                    <div class="question">
-                        <h2>What does HTML stand for?</h2>
-                        <div class="options">
-                            <label class="option">
-                                <input type="radio" name="answer" value="1">
-                                <span class="option-text">Hyper Text Markup Language</span>
-                            </label>
-                            <label class="option">
-                                <input type="radio" name="answer" value="2">
-                                <span class="option-text">High Tech Modern Language</span>
-                            </label>
-                            <label class="option">
-                                <input type="radio" name="answer" value="3">
-                                <span class="option-text">Hyperlinks and Text Markup Language</span>
-                            </label>
-                            <label class="option">
-                                <input type="radio" name="answer" value="4">
-                                <span class="option-text">Home Tool Markup Language</span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Quiz Navigation -->
-                <div class="quiz-navigation">
-                    <label class="review-later">
-                        <input type="checkbox" id="review">
-                        <span>Review Later</span>
-                    </label>
-                    <div class="nav-buttons">
-                        <button class="skip-btn">Skip</button>
-                        <button class="next-btn">Next</button>
-                    </div>
-                </div>
+                <div class="feedback" id="feedback"></div>
+                <button class="btn btn-primary" id="next-btn" disabled>Next Question</button>
             </div>
-        </main>
+
+            <!-- Results Section -->
+            <div id="results-container" class="results-container">
+                <h2>Quiz Completed!</h2>
+                <div class="score-display">
+                    Your score: <span id="final-score">0</span> out of <span id="max-score">{{ quiz['quiz']|length
+                        }}</span>
+                </div>
+                <p id="result-message"></p>
+                <button class="btn btn-primary" id="restart-btn">Submit</button>
+            </div>
+        </div>
     </div>
+
+    <script>
+        const stepId = {{ step_id }};
+        const roadmapId = {{ roadmap_id }};
+        let percentage = 0;
+        const quizData = {{ quiz['quiz']| tojson }};
+        let currentQuestionIndex = 0;
+        const totalQuestions = quizData.length;
+        let score = 0;
+        let selectedOption = null;
+        let answerChecked = false;
+
+        // DOM elements
+        const questionTextElement = document.getElementById('question-text');
+        const optionsContainer = document.getElementById('options-container');
+        const currentQuestionNumElement = document.getElementById('current-question-num');
+        const nextButton = document.getElementById('next-btn');
+        const feedbackElement = document.getElementById('feedback');
+        const quizContent = document.getElementById('quiz-content');
+        const resultsContainer = document.getElementById('results-container');
+        const finalScoreElement = document.getElementById('final-score');
+        const resultMessageElement = document.getElementById('result-message');
+        const restartButton = document.getElementById('restart-btn');
+
+        function loadQuestion(index) {
+            const question = quizData[index];
+            questionTextElement.textContent = question.question;
+
+            // Reset state
+            selectedOption = null;
+            answerChecked = false;
+            nextButton.disabled = true;
+            feedbackElement.textContent = '';
+
+            // Update options
+            optionsContainer.innerHTML = '';
+            question.options.forEach(option => {
+                const optionElement = document.createElement('div');
+                optionElement.className = 'list-group-item option';
+                optionElement.textContent = option;
+
+                // Add click event to select option
+                optionElement.addEventListener('click', function () {
+                    if (!answerChecked) {
+                        // Remove selected class from all options
+                        document.querySelectorAll('.option').forEach(opt => {
+                            opt.classList.remove('selected');
+                        });
+
+                        // Add selected class to clicked option
+                        this.classList.add('selected');
+                        selectedOption = this.textContent;
+                        nextButton.disabled = false;
+                    }
+                });
+
+                optionsContainer.appendChild(optionElement);
+            });
+
+            // Update question number
+            currentQuestionNumElement.textContent = index + 1;
+
+            // Change button text if it's the last question
+            if (index === totalQuestions - 1) {
+                nextButton.textContent = 'Finish Quiz';
+            } else {
+                nextButton.textContent = 'Next Question';
+            }
+        }
+
+        function checkAnswer() {
+            if (!selectedOption) return false;
+
+            const currentQuestion = quizData[currentQuestionIndex];
+            const isCorrect = selectedOption === currentQuestion.correct_ans;
+
+            // Highlight correct and incorrect answers
+            document.querySelectorAll('.option').forEach(option => {
+                if (option.textContent === currentQuestion.correct_ans) {
+                    option.classList.add('correct');
+                } else if (option.textContent === selectedOption && !isCorrect) {
+                    option.classList.add('incorrect');
+                }
+            });
+
+            // Update score if correct
+            if (isCorrect) {
+                score++;
+                feedbackElement.textContent = "Correct!";
+                feedbackElement.style.color = "#28a745";
+            } else {
+                feedbackElement.textContent = `Incorrect. The correct answer is: ${currentQuestion.correct_ans}`;
+                feedbackElement.style.color = "#dc3545";
+            }
+
+            answerChecked = true;
+            nextButton.disabled = false;
+
+            return isCorrect;
+        }
+
+        function showResults() {
+            // Hide quiz content
+            quizContent.style.display = 'none';
+
+            // Show results
+            resultsContainer.style.display = 'block';
+            finalScoreElement.textContent = score;
+
+            // Display result message
+            percentage = score
+            let message = '';
+
+            if (percentage >= 80) {
+                message = 'Excellent work! You have a strong understanding of this topic.';
+            } else if (percentage >= 60) {
+                message = 'Good job! You have a decent understanding, but there\'s room for improvement.';
+            } else if (percentage >= 40) {
+                message = 'Not bad! Consider reviewing the material to strengthen your knowledge.';
+            } else {
+                message = 'Keep practicing! Review the material and try again.';
+            }
+
+            resultMessageElement.textContent = message;
+        }
+
+        // Next button click handler
+        nextButton.addEventListener('click', () => {
+            if (!answerChecked && selectedOption) {
+                // First click - check answer
+                checkAnswer();
+                nextButton.textContent = currentQuestionIndex === totalQuestions - 1 ? 'See Results' : 'Next Question';
+            } else {
+                // Second click - move to next question
+                currentQuestionIndex++;
+
+                if (currentQuestionIndex < totalQuestions) {
+                    loadQuestion(currentQuestionIndex);
+                } else {
+                    // Quiz finished
+                    showResults();
+                }
+            }
+        });
+
+        // Restart button click handler
+        restartButton.addEventListener('click', () => {
+            // Reset quiz state
+            currentQuestionIndex = 0;
+            score = 0;
+            selectedOption = null;
+            answerChecked = false;
+
+            // Show quiz content and hide results
+            quizContent.style.display = 'block';
+            resultsContainer.style.display = 'none';
+
+            // Reload first question
+            loadQuestion(0);
+
+            // Reset timer
+            timeLeft = 600;
+        });
+
+        // Timer setup (starts from 10 minutes)
+        let timeLeft = 600; // 600 seconds = 10 minutes
+        const timerElement = document.getElementById('time');
+
+        function updateTimer() {
+            let minutes = Math.floor(timeLeft / 60);
+            let seconds = timeLeft % 60;
+            timerElement.textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+
+            if (timeLeft > 0) {
+                timeLeft--;
+            } else {
+                // Time's up - show results
+                showResults();
+                clearInterval(timerInterval);
+            }
+        }
+        document.getElementById('restart-btn').addEventListener('click', function () {
+            window.location.href = "{{ url_for('view_roadmap', roadmap_id=0)}}".replace('0', roadmapId) + `?score=${percentage}&step_id=${stepId}`;
+        });
+        const timerInterval = setInterval(updateTimer, 1000);
+
+        loadQuestion(0);
+    </script>
 </body>
-</html> 
+
+</html>
