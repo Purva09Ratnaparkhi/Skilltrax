@@ -1,26 +1,54 @@
 from youtube_transcriber import yt_transcribe
-from ollama import ChatResponse, Client
+from groq import Groq
 import json
 import asyncio
+import os
 
-client = Client("http://localhost:11434")
+client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
+
+SYSTEM_PROMPT = """
+You are a system that generates multiple choice quiz based on transcript of educational video provided to you.
+Don't add anything extra other than that in transcript, but make sure all the points in transcript are covered.
+If the transcript is in any other language, then first translate it into English. 
+Generate exactly 10 questions in following json format:
+{ 
+  quiz: [ 
+    { question: <only question>, options: [ <option1>, <option2>, <option3>, <option4> ], correct_ans: <actual correct answer> },
+    { question: <only question>, options: [ <option1>, <option2>, <option3>, <option4> ], correct_ans: <actual correct answer> }
+  ] 
+}
+Don't make changes in given output format, don't add any header or footer please give only json.
+"""
 
 async def generate_quiz(url):
-    transcript = await yt_transcribe(url=url)
-    response = client.chat(
-        model='quiz_generator', 
-        messages=[{'role': 'user', 'content': transcript}], 
-        stream=False
+    
+    transcript = await yt_transcribe(url)
+
+    if not transcript:
+        return {"error": "Transcript not available"}
+
+    response = client.chat.completions.create(
+        model="llama-3.1-8b-instant",
+        temperature=0.5,
+        response_format={"type": "json_object"},
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": transcript}
+        ]
     )
-    print(response['message']['content'])
+
+    output = response.choices[0].message.content
+
+    print(output)
+
     try:
-        jresponse =  json.loads(response['message']['content'])
+        jresponse = json.loads(output)
     except:
         return False
-    return jresponse
-    # for response in response_stream:
-    #     print(response['message']['content'], end='', flush=True) 
-    # return json.loads(response['message']['content'])
 
-# text = asyncio.run(generate_quiz("https://youtu.be/YmKmS9bpMqM?si=D94UYeYS4BbT57sA"))
+    return jresponse
+
+
+# Example
+# text = asyncio.run(generate_quiz("https://youtu.be/YmKmS9bpMqM"))
 # print(text)
