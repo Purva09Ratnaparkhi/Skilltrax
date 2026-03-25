@@ -439,7 +439,7 @@
                                 <span class="material-icons">quiz</span>
                                 Quiz
                                 {% if quiz_scores.get(step.id) is not none %}
-                                <span class="score-pill">{{ quiz_scores[step.id] }}%</span>
+                                <span class="score-pill">{{ quiz_scores[step.id] *10}}%</span>
                                 {% endif %}
                             </a>
 
