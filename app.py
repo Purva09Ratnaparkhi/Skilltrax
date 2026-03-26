@@ -546,6 +546,86 @@ def show_users():
     users = User.query.all()
     return {"users": [{"id": u.id, "name": u.name, "email": u.email} for u in users]}
 
+# Test endpoint for newly added models
+@app.route('/test_models', methods=['GET', 'POST'])
+def test_models():
+    if 'user_id' not in session:
+        return jsonify({'error': 'User not logged in'}), 401
+
+    user = User.query.get(session['user_id'])
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    if request.method == 'POST':
+        data = request.get_json() or {}
+
+        skill = Skills(
+            skill_name=data.get('skill_name', 'Python'),
+            level=data.get('skill_level', 'beginner'),
+            user_id=user.id
+        )
+        project = Project(
+            project_name=data.get('project_name', 'Sample Project'),
+            description=data.get('project_description', 'Test project description'),
+            user_id=user.id
+        )
+        experience = Experience(
+            role=data.get('role', 'Intern'),
+            company_name=data.get('company_name', 'Example Co'),
+            description=data.get('experience_description', 'Test experience description'),
+            user_id=user.id
+        )
+
+        db.session.add_all([skill, project, experience])
+        db.session.commit()
+
+        return jsonify({'message': 'Test records created'}), 201
+
+    skills = Skills.query.filter_by(user_id=user.id).all()
+    projects = Project.query.filter_by(user_id=user.id).all()
+    experiences = Experience.query.filter_by(user_id=user.id).all()
+
+    return jsonify({
+        'skills': [
+            {'id': s.id, 'skill_name': s.skill_name, 'level': s.level}
+            for s in skills
+        ],
+        'projects': [
+            {'id': p.id, 'project_name': p.project_name, 'description': p.description}
+            for p in projects
+        ],
+        'experiences': [
+            {
+                'id': e.id,
+                'role': e.role,
+                'company_name': e.company_name,
+                'description': e.description
+            }
+            for e in experiences
+        ]
+    })
+
+
+@app.route('/skill_gap_test', methods=['GET'])
+def skill_gap_test():
+    if 'user_id' not in session:
+        return jsonify({'error': 'User not logged in'}), 401
+
+    user = User.query.get(session['user_id'])
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    job_description_path = request.args.get('path')
+    skills = Skills.query.filter_by(user_id=user.id).all()
+    skills_payload = [
+        {"skill_name": skill.skill_name, "level": skill.level}
+        for skill in skills
+    ]
+
+    from skill_gap_analysis import test_skill_gap_with_pdf
+    subjects = test_skill_gap_with_pdf(skills_payload, job_description_path)
+    return jsonify({'subjects': subjects})
+
 # Clear Session Route
 @app.route('/clear_session')
 def clear_session():
@@ -664,7 +744,7 @@ def upload_syllabus():
 
 
 
-@app.route('/profile')
+@app.route('/profile', methods=['GET', 'POST'])
 def profile():
     if 'user_id' not in session:
         flash("You must log in first!")
@@ -675,6 +755,41 @@ def profile():
         session.pop('user_id', None)
         flash("User not found, please log in again.")
         return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        skill_name = request.form.get('skill_name')
+        skill_level = request.form.get('skill_level')
+        project_name = request.form.get('project_name')
+        project_description = request.form.get('project_description')
+        role = request.form.get('role')
+        company_name = request.form.get('company_name')
+        experience_description = request.form.get('experience_description')
+
+        if skill_name and skill_level:
+            db.session.add(Skills(
+                skill_name=skill_name,
+                level=skill_level,
+                user_id=user.id
+            ))
+
+        if project_name:
+            db.session.add(Project(
+                project_name=project_name,
+                description=project_description,
+                user_id=user.id
+            ))
+
+        if role and company_name:
+            db.session.add(Experience(
+                role=role,
+                company_name=company_name,
+                description=experience_description,
+                user_id=user.id
+            ))
+
+        db.session.commit()
+        flash("Profile details saved.")
+        return redirect(url_for('profile'))
     
     # Fetch roadmaps where the user is enrolled
     enrolled_roadmaps = Roadmap.query.filter_by(user_id=user.id).all()
@@ -693,11 +808,18 @@ def profile():
     # Check if user has any enrolled roadmaps
     has_roadmaps = enrolled_courses > 0
 
+    skills = Skills.query.filter_by(user_id=user.id).all()
+    projects = Project.query.filter_by(user_id=user.id).all()
+    experiences = Experience.query.filter_by(user_id=user.id).all()
+
     return render_template(
         'profile.html',
         user=user,
         roadmaps=enrolled_roadmaps,
-        has_roadmaps=has_roadmaps
+        has_roadmaps=has_roadmaps,
+        skills=skills,
+        projects=projects,
+        experiences=experiences
     )
 
 @app.route("/quiz/<int:step_id>")

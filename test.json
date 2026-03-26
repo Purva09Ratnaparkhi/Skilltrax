@@ -1,0 +1,50 @@
+[
+  {
+    "subject": "name of the subject",
+    "subject_desc": "brief description of the subject based on syllabus context",
+    "roadmap": [
+      {
+        "title": "topic title",
+        "description": "short explanation derived from the syllabus",
+        "level": "Beginner | Intermediate | Advanced"
+      },
+      {
+        "title": "topic title",
+        "description": "short explanation derived from the syllabus",
+        "level": "Beginner | Intermediate | Advanced"
+      },
+      {
+        "title": "topic title",
+        "description": "short explanation derived from the syllabus",
+        "level": "Beginner | Intermediate | Advanced"
+      },
+      {
+        "title": "topic title",
+        "description": "short explanation derived from the syllabus",
+        "level": "Beginner | Intermediate | Advanced"
+      }
+    ]
+  },
+  {
+    "subject": "name of the subject",
+    "subject_desc": "brief description of the subject based on syllabus context",
+    "roadmap": [
+      {
+        "title": "topic title",
+        "description": "short explanation derived from the syllabus",
+        "level": "Beginner | Intermediate | Advanced"
+      }
+    ]
+  },
+  {
+    "subject": "name of the subject",
+    "subject_desc": "brief description of the subject based on syllabus context",
+    "roadmap": [
+      {
+        "title": "topic title",
+        "description": "short explanation derived from the syllabus",
+        "level": "Beginner | Intermediate | Advanced"
+      }
+    ]
+  }
+]

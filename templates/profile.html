@@ -58,10 +58,70 @@
                             </div>
                         </div>
                     </div>
-                    <!-- <button class="edit-profile-btn" onclick="openEditModal()">
-                        <span class="material-icons">edit</span>
-                        Edit Profile
-                    </button> -->
+                </div>
+
+                <div class="profile-form-section">
+                    <div class="section-header">
+                        <h2>Add Skills, Projects, Experience</h2>
+                    </div>
+                    <form class="profile-details-form" method="POST" action="{{ url_for('profile') }}">
+                        <div class="profile-form-grid">
+                            <div class="profile-form-card">
+                                <div class="profile-card-header">
+                                    <span class="material-icons">auto_graph</span>
+                                    <h3>Skills</h3>
+                                </div>
+                                <div class="form-group">
+                                    <label for="skillName">Skill Name</label>
+                                    <input type="text" id="skillName" name="skill_name" placeholder="e.g., Python">
+                                </div>
+                                <div class="form-group">
+                                    <label for="skillLevel">Skill Level</label>
+                                    <select id="skillLevel" name="skill_level">
+                                        <option value="">Select level</option>
+                                        <option value="beginner">Beginner</option>
+                                        <option value="intermediate">Intermediate</option>
+                                        <option value="advanced">Advanced</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="profile-form-card">
+                                <div class="profile-card-header">
+                                    <span class="material-icons">work_outline</span>
+                                    <h3>Projects</h3>
+                                </div>
+                                <div class="form-group">
+                                    <label for="projectName">Project Name</label>
+                                    <input type="text" id="projectName" name="project_name" placeholder="e.g., SkillTrax">
+                                </div>
+                                <div class="form-group">
+                                    <label for="projectDescription">Project Description</label>
+                                    <textarea id="projectDescription" name="project_description" rows="2"></textarea>
+                                </div>
+                            </div>
+                            <div class="profile-form-card">
+                                <div class="profile-card-header">
+                                    <span class="material-icons">business_center</span>
+                                    <h3>Experience</h3>
+                                </div>
+                                <div class="form-group">
+                                    <label for="role">Role</label>
+                                    <input type="text" id="role" name="role" placeholder="e.g., Intern">
+                                </div>
+                                <div class="form-group">
+                                    <label for="companyName">Company Name</label>
+                                    <input type="text" id="companyName" name="company_name" placeholder="e.g., Acme">
+                                </div>
+                                <div class="form-group">
+                                    <label for="experienceDescription">Experience Description</label>
+                                    <textarea id="experienceDescription" name="experience_description" rows="2"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="profile-form-actions">
+                            <button type="submit" class="save-btn">Save Details</button>
+                        </div>
+                    </form>
                 </div>
 
                 <!-- Learning Roadmaps Section -->
@@ -103,6 +163,52 @@
                         {% endif %}
                     </div>
 
+                </div>
+
+                <!-- Skills, Projects, Experience Section -->
+                <div class="learning-section">
+                    <div class="section-header">
+                        <h2>Profile Details</h2>
+                    </div>
+
+                    <div class="roadmaps-grid">
+                        <div>
+                            <h3>Skills</h3>
+                            {% if skills %}
+                            <ul>
+                                {% for skill in skills %}
+                                <li>{{ skill.skill_name }} ({{ skill.level }})</li>
+                                {% endfor %}
+                            </ul>
+                            {% else %}
+                            <p>No skills added yet.</p>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <h3>Projects</h3>
+                            {% if projects %}
+                            <ul>
+                                {% for project in projects %}
+                                <li>{{ project.project_name }} - {{ project.description }}</li>
+                                {% endfor %}
+                            </ul>
+                            {% else %}
+                            <p>No projects added yet.</p>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <h3>Experience</h3>
+                            {% if experiences %}
+                            <ul>
+                                {% for exp in experiences %}
+                                <li>{{ exp.role }} at {{ exp.company_name }} - {{ exp.description }}</li>
+                                {% endfor %}
+                            </ul>
+                            {% else %}
+                            <p>No experience added yet.</p>
+                            {% endif %}
+                        </div>
+                    </div>
                 </div>
             </div>
     </div>
