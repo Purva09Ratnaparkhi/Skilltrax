@@ -88,6 +88,43 @@ class RoadmapStep(db.Model):
         return f'<RoadmapStep {self.title}>'
 
 
+# Skills Model
+class Skills(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    skill_name = db.Column(db.String(100), nullable=False)
+    level = db.Column(db.String(20), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user = db.relationship('User', backref=db.backref('skills', lazy=True, cascade="all, delete-orphan"))
+
+    def __repr__(self):
+        return f'<Skills {self.skill_name}>'
+
+
+# Project Model
+class Project(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    project_name = db.Column(db.String(150), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user = db.relationship('User', backref=db.backref('projects', lazy=True, cascade="all, delete-orphan"))
+
+    def __repr__(self):
+        return f'<Project {self.project_name}>'
+
+
+# Experience Model
+class Experience(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    role = db.Column(db.String(100), nullable=False)
+    company_name = db.Column(db.String(150), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user = db.relationship('User', backref=db.backref('experiences', lazy=True, cascade="all, delete-orphan"))
+
+    def __repr__(self):
+        return f'<Experience {self.role} at {self.company_name}>'
+
+
 # Initialize database within app context
 with app.app_context():
     db.create_all()
