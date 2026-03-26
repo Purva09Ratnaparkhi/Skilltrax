@@ -82,10 +82,13 @@ def analyze_skill_gap_from_text(job_description_text, skills):
 
     content = response.choices[0].message.content
     data = safe_json_loads(content)
-    for subject in data.get("subjects", []):
+    subjects = data.get("subjects", [])
+    for subject in subjects:
         subject["learning goals"] = "Interview Preparation"
-        subject["custom requirement"] = "Focus on practical skills and real-world applications relevant to the job description."
-    return data.get("subjects", [])
+        subject["custom requirement"] = (
+            "Focus on practical skills and real-world applications relevant to the job description."
+        )
+    return {"subjects": subjects}
 
 
 def test_skill_gap_with_pdf(skills, job_description_path=None):
@@ -106,8 +109,8 @@ def main():
         return
 
     job_description_path = os.getenv("JOB_DESC_PATH", "").strip() or None
-    subjects = test_skill_gap_with_pdf(skills, job_description_path)
-    print(json.dumps(subjects, indent=2))
+    result = test_skill_gap_with_pdf(skills, job_description_path)
+    print(json.dumps(result, indent=2))
 
 
 if __name__ == "__main__":
