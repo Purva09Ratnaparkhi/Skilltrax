@@ -1883,6 +1883,7 @@ p, label, input, select, textarea {
     background: var(--background-secondary);
     border-radius: 12px;
     box-shadow: var(--shadow-md);
+    gap: 24px;
 }
 
 .profile-info {
@@ -1916,6 +1917,79 @@ p, label, input, select, textarea {
     display: flex;
     gap: 12px;
     align-items: center;
+}
+
+.profile-form-section {
+    background: var(--background-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 20px 24px;
+    margin: 24px 0 40px;
+    box-shadow: var(--shadow-md);
+}
+
+.profile-details-form {
+    background: var(--background-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: var(--shadow-sm);
+}
+
+.profile-details-form .form-group {
+    margin-bottom: 0;
+}
+
+.profile-form-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px 16px;
+    align-items: start;
+}
+
+
+.profile-form-card {
+    background: var(--background-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.profile-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.profile-card-header h3 {
+    font-size: 16px;
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.profile-card-header .material-icons {
+    color: var(--primary-blue);
+    font-size: 20px;
+    background: rgba(66, 133, 244, 0.12);
+    border-radius: 8px;
+    padding: 6px;
+}
+
+.profile-form-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 16px;
+}
+
+.profile-form-actions .save-btn {
+    padding: 12px 28px;
+    font-size: 15px;
 }
 
 .profile-tag {
@@ -2099,6 +2173,10 @@ p, label, input, select, textarea {
     .sort-btn {
         flex: 1;
         justify-content: center;
+    }
+
+    .profile-form-grid {
+        grid-template-columns: 1fr;
     }
 }
 

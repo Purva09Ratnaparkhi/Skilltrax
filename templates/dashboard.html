@@ -102,6 +102,32 @@
             {% endif %}
         </div>
 
+        <div class="recommended-section">
+            <h2>Your Preparations</h2>
+            <p>View all roadmaps grouped by job preparation.</p>
+        </div>
+
+        <div class="roadmaps-grid">
+            {% if has_preparations %}
+            {% for preparation in preparations %}
+            <div class="roadmap-card preparation-card" data-id="{{ preparation.id }}">
+                <div class="roadmap-tag">Preparation</div>
+                <h3>{{ preparation.name }}</h3>
+                <p>Click to view all roadmaps for this preparation.</p>
+                <div class="roadmap-footer">
+                    <div class="progress-info">
+                        <span class="material-icons progress-icon">folder</span>
+                        View Roadmaps
+                    </div>
+                    <span class="material-icons">chevron_right</span>
+                </div>
+            </div>
+            {% endfor %}
+            {% else %}
+            <p>No preparations yet. Upload a JD to generate one.</p>
+            {% endif %}
+        </div>
+
         <!-- Recommended Courses -->
         <div class="recommended-section">
             <h2>Recommended for You</h2>
@@ -172,6 +198,14 @@
             card.addEventListener('click', function () {
                 const roadmapId = this.getAttribute('data-id');
                 window.location.href = "{{ url_for('view_roadmap', roadmap_id=0) }}".replace('0', roadmapId);
+            });
+        });
+
+        document.querySelectorAll('.preparation-card').forEach(card => {
+            card.addEventListener('click', function (event) {
+                event.stopPropagation();
+                const prepId = this.getAttribute('data-id');
+                window.location.href = "{{ url_for('view_preparation', preparation_id=0) }}".replace('0', prepId);
             });
         });
     </script>

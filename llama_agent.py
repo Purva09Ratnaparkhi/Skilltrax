@@ -13,7 +13,7 @@ You will receive input in the following format:
   "subject area": "<name of subject>",
   "current knowledge level": "<Beginner | Intermediate | Advanced>",
   "learning goals": "<Exam Preparation | Career Development | Personal Interest | Professional Certification>",
-  "custom requirement": "<any additional requirements>"
+  "custom requirenment": "<any additional requirements>"
 }
 
 Your task is to create a logical and structured roadmap that helps a learner progress from fundamentals to advanced concepts.
