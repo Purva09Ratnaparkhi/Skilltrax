@@ -1,563 +1,627 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SkillTrax - {{ roadmap.title }} Roadmap</title>
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Icons"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
 
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Icons"
+      rel="stylesheet"
+    />
     <style>
-        :root {
-            --primary-color: #3498db;
-            --completed-color: #10b981;
-            --progress-color: #3498db;
-            --locked-color: #9ca3af;
-            --border-color: #e5e7eb;
-            --background-color: #f9fafb;
-            --card-background: #ffffff;
-            --text-color: #1f2937;
-            --text-secondary: #6b7280;
-            --border-radius: 8px;
-        }
+      :root {
+        --primary-color: #3498db;
+        --completed-color: #10b981;
+        --progress-color: #3498db;
+        --locked-color: #9ca3af;
+        --border-color: #e5e7eb;
+        --background-color: #f9fafb;
+        --card-background: #ffffff;
+        --text-color: #1f2937;
+        --text-secondary: #6b7280;
+        --border-radius: 8px;
+      }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif, Tahoma, Geneva, Verdana, 'Inter';
-        }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+          Cantarell, sans-serif, Tahoma, Geneva, Verdana, "Inter";
+      }
 
+      body {
+        background-color: var(--background-color);
+        color: var(--text-color);
+        line-height: 1.5;
+      }
 
-        body {
-            background-color: var(--background-color);
-            color: var(--text-color);
-            line-height: 1.5;
+      header {
+        background-color: var(--card-color);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
 
-        }
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 20px;
+      }
 
-        header {
-            background-color: var(--card-color);
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
+      /* Header */
+      header {
+        background-color: var(--card-background);
+        box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+        padding: 15px 0;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-        }
+      nav {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        height: 40px !important;
+        padding: 1rem;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
 
-        /* Header */
-        header {
-            background-color: var(--card-background);
-            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-            padding: 15px 0;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
+      .logo {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: var(--primary-color);
+      }
 
-        nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            height: 40px !important;
-            padding: 1rem;
-            max-width: 1200px;
-            margin: 0 auto;
+      .nav-links {
+        display: flex;
+        gap: 1.5rem;
+      }
 
-        }
+      .nav-links a {
+        text-decoration: none;
+        color: var(--text-color);
+        font-size: 15px;
+        font-weight: 500;
+        position: relative;
+        transition: color 0.3s;
+      }
 
-        .logo {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: var(--primary-color);
-        }
+      .nav-links a:hover,
+      .nav-links a.active {
+        color: var(--primary-color);
+      }
 
+      .nav-links a.active::after {
+        content: "";
+        position: absolute;
+        bottom: -5px;
+        left: 0;
+        width: 100%;
+        height: 3px;
+        background-color: var(--primary-color);
+        border-radius: 3px;
+      }
 
+      .nav-middle {
+        display: flex;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        padding-bottom: 8px;
+      }
 
+      .nav-middle::-webkit-scrollbar {
+        display: none;
+      }
+
+      .user-menu {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .user-menu span {
+        font-size: 14px;
+        color: #555;
+      }
+
+      .logout-btn:hover {
+        /* background-color: #e9ecef; */
+        background-color: #c0392b;
+      }
+
+      .logout-btn {
+        background-color: var(--primary-color);
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: var(--border-radius);
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 500;
+        border: none;
+        cursor: pointer;
+        transition:
+          background-color 0.3s,
+          transform 0.2s;
+      }
+
+      /* Main Content */
+      main {
+        padding: 30px 0;
+      }
+
+      .roadmap-header {
+        margin-bottom: 30px;
+      }
+
+      .roadmap-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin-bottom: 5px;
+      }
+
+      .roadmap-description {
+        color: var(--text-secondary);
+        margin-bottom: 15px;
+      }
+
+      .roadmap-status {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 30px;
+      }
+
+      .status-tag {
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.875rem;
+        font-weight: 500;
+      }
+
+      .status-tag.completed {
+        background-color: rgba(16, 185, 129, 0.1);
+        color: var(--completed-color);
+      }
+
+      .status-tag.in-progress {
+        background-color: rgba(59, 130, 246, 0.1);
+        color: var(--progress-color);
+      }
+
+      .status-tag.not-started {
+        background-color: rgba(156, 163, 175, 0.1);
+        color: var(--locked-color);
+      }
+
+      .progress-text {
+        color: var(--text-secondary);
+        font-weight: 500;
+      }
+
+      /* Roadmap Steps */
+      .roadmap-steps {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      .roadmap-step {
+        background-color: var(--card-background);
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        border: 1px solid var(--border-color);
+        overflow: hidden;
+      }
+
+      .roadmap-step.completed {
+        border-left: 4px solid var(--completed-color);
+      }
+
+      .roadmap-step.in_progress {
+        border-left: 4px solid var(--progress-color);
+      }
+
+      .roadmap-step.locked {
+        border-left: 4px solid var(--locked-color);
+        opacity: 0.8;
+      }
+
+      .step-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 20px;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      .step-header h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+      }
+
+      .step-status {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--text-secondary);
+      }
+
+      .step-status.completed {
+        color: var(--completed-color);
+      }
+
+      .step-status.in-progress {
+        color: var(--progress-color);
+      }
+
+      .step-status.locked {
+        color: var(--locked-color);
+      }
+
+      .step-content {
+        padding: 20px;
+      }
+
+      .step-description {
+        margin-bottom: 15px;
+      }
+
+      .step-level {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        margin-bottom: 20px;
+      }
+
+      .step-actions {
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+      }
+
+      .action-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-decoration: none;
+      }
+
+      .video-btn {
+        background-color: rgba(59, 130, 246, 0.1);
+        color: var(--primary-color);
+        border: none;
+      }
+
+      .video-btn:hover {
+        background-color: rgba(59, 130, 246, 0.2);
+      }
+
+      .quiz-btn {
+        background-color: rgba(16, 185, 129, 0.1);
+        color: var(--completed-color);
+        border: none;
+      }
+
+      .quiz-btn:hover {
+        background-color: rgba(16, 185, 129, 0.2);
+      }
+
+      .article-btn {
+        background-color: rgba(245, 158, 11, 0.12);
+        color: #b45309;
+        border: none;
+      }
+
+      .article-btn:hover {
+        background-color: rgba(245, 158, 11, 0.2);
+      }
+
+      .complete-btn {
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+      }
+
+      .complete-btn:hover {
+        background-color: #1d4ed8;
+      }
+
+      .reset-btn {
+        background-color: white;
+        color: var(--text-color);
+        border: 1px solid var(--border-color);
+      }
+
+      .reset-btn:hover {
+        background-color: #f3f4f6;
+      }
+
+      .disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .disabled:hover {
+        background-color: initial;
+      }
+
+      /* Responsive */
+      @media (max-width: 768px) {
         .nav-links {
-            display: flex;
-            gap: 1.5rem;
-        }
-
-        .nav-links a {
-            text-decoration: none;
-            color: var(--text-color);
-            font-size: 15px;
-            font-weight: 500;
-            position: relative;
-            transition: color 0.3s;
-
-        }
-
-        .nav-links a:hover,
-        .nav-links a.active {
-            color: var(--primary-color);
-        }
-
-        .nav-links a.active::after {
-            content: '';
-            position: absolute;
-            bottom: -5px;
-            left: 0;
-            width: 100%;
-            height: 3px;
-            background-color: var(--primary-color);
-            border-radius: 3px;
-        }
-
-        .nav-middle {
-            display: flex;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: none;
-            padding-bottom: 8px;
-        }
-
-        .nav-middle::-webkit-scrollbar {
-            display: none;
-        }
-
-        .user-menu {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .user-menu span {
-            font-size: 14px;
-            color: #555;
-        }
-
-        .logout-btn:hover {
-            /* background-color: #e9ecef; */
-            background-color: #c0392b;
-        }
-
-        .logout-btn {
-            background-color: var(--primary-color);
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: var(--border-radius);
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 500;
-            border: none;
-            cursor: pointer;
-            transition: background-color 0.3s, transform 0.2s;
-        }
-
-        /* Main Content */
-        main {
-            padding: 30px 0;
-        }
-
-        .roadmap-header {
-            margin-bottom: 30px;
-        }
-
-        .roadmap-title {
-            font-size: 1.75rem;
-            font-weight: 700;
-            margin-bottom: 5px;
-        }
-
-        .roadmap-description {
-            color: var(--text-secondary);
-            margin-bottom: 15px;
-        }
-
-        .roadmap-status {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 30px;
-        }
-
-        .status-tag {
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 0.875rem;
-            font-weight: 500;
-        }
-
-        .status-tag.completed {
-            background-color: rgba(16, 185, 129, 0.1);
-            color: var(--completed-color);
-        }
-
-        .status-tag.in-progress {
-            background-color: rgba(59, 130, 246, 0.1);
-            color: var(--progress-color);
-        }
-
-        .status-tag.not-started {
-            background-color: rgba(156, 163, 175, 0.1);
-            color: var(--locked-color);
-        }
-
-        .progress-text {
-            color: var(--text-secondary);
-            font-weight: 500;
-        }
-
-        /* Roadmap Steps */
-        .roadmap-steps {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .roadmap-step {
-            background-color: var(--card-background);
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-            border: 1px solid var(--border-color);
-            overflow: hidden;
-        }
-
-        .roadmap-step.completed {
-            border-left: 4px solid var(--completed-color);
-        }
-
-        .roadmap-step.in_progress {
-            border-left: 4px solid var(--progress-color);
-        }
-
-        .roadmap-step.locked {
-            border-left: 4px solid var(--locked-color);
-            opacity: 0.8;
-        }
-
-        .step-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 20px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .step-header h3 {
-            font-size: 1.25rem;
-            font-weight: 600;
-        }
-
-        .step-status {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: var(--text-secondary);
-        }
-
-        .step-status.completed {
-            color: var(--completed-color);
-        }
-
-        .step-status.in-progress {
-            color: var(--progress-color);
-        }
-
-        .step-status.locked {
-            color: var(--locked-color);
-        }
-
-        .step-content {
-            padding: 20px;
-        }
-
-        .step-description {
-            margin-bottom: 15px;
-        }
-
-        .step-level {
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-            margin-bottom: 20px;
+          display: none;
         }
 
         .step-actions {
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
+          flex-direction: column;
         }
 
         .action-btn {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 16px;
-            border-radius: 6px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            text-decoration: none;
+          width: 100%;
+          justify-content: center;
         }
-
-        .video-btn {
-            background-color: rgba(59, 130, 246, 0.1);
-            color: var(--primary-color);
-            border: none;
-        }
-
-        .video-btn:hover {
-            background-color: rgba(59, 130, 246, 0.2);
-        }
-
-        .quiz-btn {
-            background-color: rgba(16, 185, 129, 0.1);
-            color: var(--completed-color);
-            border: none;
-        }
-
-        .quiz-btn:hover {
-            background-color: rgba(16, 185, 129, 0.2);
-        }
-
-        .complete-btn {
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-        }
-
-        .complete-btn:hover {
-            background-color: #1d4ed8;
-        }
-
-        .reset-btn {
-            background-color: white;
-            color: var(--text-color);
-            border: 1px solid var(--border-color);
-        }
-
-        .reset-btn:hover {
-            background-color: #f3f4f6;
-        }
-
-        .disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .disabled:hover {
-            background-color: initial;
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .nav-links {
-                display: none;
-            }
-
-            .step-actions {
-                flex-direction: column;
-            }
-
-            .action-btn {
-                width: 100%;
-                justify-content: center;
-            }
-        }
+      }
     </style>
-</head>
+  </head>
 
-<body>
+  <body>
     <header>
-        <nav>
-            <div class="logo">SkillTrax</div>
-            <div class="nav-links">
-                <a href="{{ url_for('dashboard') }}" class="active">Dashboard</a>
-                <a href="{{ url_for('create_roadmap')}}">Create Roadmap</a>
-                <a href="{{ url_for('syllabus') }}">
-                    <i class="fas fa-crown"></i> Syllabus pro
-                </a>
-                <a href="{{ url_for('profile') }}">Profile</a>
-            </div>
-            <div class="user-menu">
-                <span>Welcome, {{ user.name }}</span>
-                <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
-            </div>
-        </nav>
+      <nav>
+        <div class="logo">SkillTrax</div>
+        <div class="nav-links">
+          <a href="{{ url_for('dashboard') }}" class="active">Dashboard</a>
+          <a href="{{ url_for('create_roadmap')}}">Create Roadmap</a>
+          <a href="{{ url_for('syllabus') }}">
+            <i class="fas fa-crown"></i> Syllabus pro
+          </a>
+          <a href="{{ url_for('profile') }}">Profile</a>
+        </div>
+        <div class="user-menu">
+          <span>Welcome, {{ user.name }}</span>
+          <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+        </div>
+      </nav>
     </header>
 
     <main>
-        <div class="container">
-            <div class="roadmap-header">
-                <h1 class="roadmap-title">{{ roadmap.title }} Roadmap</h1>
-                <p class="roadmap-description">{{ roadmap.description or "Description of subject" }}</p>
+      <div class="container">
+        <div class="roadmap-header">
+          <h1 class="roadmap-title">{{ roadmap.title }} Roadmap</h1>
+          <p class="roadmap-description">
+            {{ roadmap.description or "Description of subject" }}
+          </p>
 
-                <div class="roadmap-status">
-                    {% if progress == 100 %}
-                    <span class="status-tag completed">Completed</span>
-                    {% elif progress > 0 %}
-                    <span class="status-tag in-progress">In Progress</span>
-                    {% else %}
-                    <span class="status-tag not-started">Not Started</span>
-                    {% endif %}
-                    <span class="progress-text">Progress: {{ progress }}%</span>
-                </div>
-            </div>
-
-            <div class="roadmap-steps">
-                {% for step in steps %}
-                <div class="roadmap-step {{ step.status }}">
-                    <div class="step-header">
-                        <h3>{{ step.title }}</h3>
-                        <div class="step-status {{ step.status }}">
-                            {% if step.status == 'completed' %}
-                            <span class="material-icons">check_circle</span>
-                            <span>Completed</span>
-                            {% elif step.status == 'in_progress' %}
-                            <span class="material-icons">pending</span>
-                            <span>In Progress</span>
-                            {% else %}
-                            <span class="material-icons">lock</span>
-                            <span>Locked</span>
-                            {% endif %}
-                        </div>
-                    </div>
-                    <div class="step-content">
-                        <p class="step-description">{{ step.description }}</p>
-                        <p class="step-level">Level: {{ step.level }}</p>
-
-                        <div class="step-actions">
-                            {% if step.resource_link %}
-                            <a href="{{ step.resource_link }}" target="_blank"
-                                class="action-btn video-btn {% if step.status == 'locked' %}disabled{% endif %}">
-                                <span class="material-icons">play_circle</span>
-                                Video Tutorial
-                            </a>
-                            {% endif %}
-
-                            <a href="#" class="action-btn quiz-btn {% if step.status == 'locked' %}disabled{% endif %}"
-                                step-id="{{ step.id }}">
-                                <span class="material-icons">quiz</span>
-                                Quiz
-                                {% if quiz_scores.get(step.id) is not none %}
-                                <span class="score-pill">{{ quiz_scores[step.id] *10}}%</span>
-                                {% endif %}
-                            </a>
-
-                            {% if step.status == 'in_progress' %}
-                            <button class="action-btn complete-btn" data-step-id="{{ step.id }}">
-                                <span class="material-icons">check_circle</span>
-                                Mark Complete
-                            </button>
-                            {% elif step.status == 'completed' %}
-                            <button class="action-btn reset-btn" data-step-id="{{ step.id }}">
-                                <span class="material-icons">restart_alt</span>
-                                Reset Step
-                            </button>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
+          <div class="roadmap-status">
+            {% if progress == 100 %}
+            <span class="status-tag completed">Completed</span>
+            {% elif progress > 0 %}
+            <span class="status-tag in-progress">In Progress</span>
+            {% else %}
+            <span class="status-tag not-started">Not Started</span>
+            {% endif %}
+            <span class="progress-text">Progress: {{ progress }}%</span>
+          </div>
         </div>
+
+        <div class="roadmap-steps">
+          {% for step in steps %}
+          <div class="roadmap-step {{ step.status }}">
+            <div class="step-header">
+              <h3>{{ step.title }}</h3>
+              <div class="step-status {{ step.status }}">
+                {% if step.status == 'completed' %}
+                <span class="material-icons">check_circle</span>
+                <span>Completed</span>
+                {% elif step.status == 'in_progress' %}
+                <span class="material-icons">pending</span>
+                <span>In Progress</span>
+                {% else %}
+                <span class="material-icons">lock</span>
+                <span>Locked</span>
+                {% endif %}
+              </div>
+            </div>
+            <div class="step-content">
+              <p class="step-description">{{ step.description }}</p>
+              <p class="step-level">Level: {{ step.level }}</p>
+
+              <div class="step-actions">
+                {% if step.resource_link_video and step.resource_link_video !=
+                'link not found' %}
+                <a
+                  href="{{ step.resource_link_video }}"
+                  target="_blank"
+                  class="action-btn video-btn {% if step.status == 'locked' %}disabled{% endif %}"
+                >
+                  <span class="material-icons">play_circle</span>
+                  Video Tutorial
+                </a>
+                {% endif %} {% if step.resource_link_webs %} {% for article_url
+                in step.resource_link_webs %}
+                <a
+                  href="{{ article_url }}"
+                  target="_blank"
+                  class="action-btn article-btn {% if step.status == 'locked' %}disabled{% endif %}"
+                >
+                  <span class="material-icons">article</span>
+                  Article {{ loop.index }}
+                </a>
+                {% endfor %} {% endif %}
+
+                <a
+                  href="#"
+                  class="action-btn quiz-btn {% if step.status == 'locked' %}disabled{% endif %}"
+                  step-id="{{ step.id }}"
+                >
+                  <span class="material-icons">quiz</span>
+                  Quiz {% if quiz_scores.get(step.id) is not none %}
+                  <span class="score-pill">{{ quiz_scores[step.id] *10}}%</span>
+                  {% endif %}
+                </a>
+
+                {% if step.status == 'in_progress' %}
+                <button
+                  class="action-btn complete-btn"
+                  data-step-id="{{ step.id }}"
+                >
+                  <span class="material-icons">check_circle</span>
+                  Mark Complete
+                </button>
+                {% elif step.status == 'completed' %}
+                <button
+                  class="action-btn reset-btn"
+                  data-step-id="{{ step.id }}"
+                >
+                  <span class="material-icons">restart_alt</span>
+                  Reset Step
+                </button>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
     </main>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // Detect if the page was loaded from back/forward navigation
-            window.addEventListener('pageshow', (event) => {
-                if (event.persisted) {
-                    document.getElementById('loadingOverlay').style.display = 'none';
-                }
-            });
-
-            document.querySelectorAll('.quiz-btn').forEach(button => {
-                button.addEventListener('click', function (event) {
-                    // Only proceed if button is not disabled
-                    if (!this.classList.contains('disabled')) {
-                        event.preventDefault();
-                        // Show loading overlay
-                        document.getElementById('loadingOverlay').style.display = 'flex';
-                    }
-                });
-            });
+      document.addEventListener("DOMContentLoaded", () => {
+        // Detect if the page was loaded from back/forward navigation
+        window.addEventListener("pageshow", (event) => {
+          if (event.persisted) {
+            document.getElementById("loadingOverlay").style.display = "none";
+          }
         });
 
-        document.querySelectorAll('.quiz-btn').forEach(button => {
-            button.addEventListener('click', function (event) {
-                event.preventDefault();
-                const step_id = this.getAttribute('step-id');
-                // Replace slashes and question marks with special markers
-                window.location.href = "{{ url_for('quiz', step_id='0') }}".replace('0', step_id);
-            });
+        document.querySelectorAll(".quiz-btn").forEach((button) => {
+          button.addEventListener("click", function (event) {
+            // Only proceed if button is not disabled
+            if (!this.classList.contains("disabled")) {
+              event.preventDefault();
+              // Show loading overlay
+              document.getElementById("loadingOverlay").style.display = "flex";
+            }
+          });
+        });
+      });
+
+      document.querySelectorAll(".quiz-btn").forEach((button) => {
+        button.addEventListener("click", function (event) {
+          event.preventDefault();
+          const step_id = this.getAttribute("step-id");
+          // Replace slashes and question marks with special markers
+          window.location.href = "{{ url_for('quiz', step_id='0') }}".replace(
+            "0",
+            step_id,
+          );
+        });
+      });
+
+      // Add event listeners for step completion buttons
+      document.addEventListener("DOMContentLoaded", () => {
+        document.querySelectorAll(".complete-btn").forEach((button) => {
+          button.addEventListener("click", function () {
+            const stepId = this.getAttribute("data-step-id");
+            updateStepStatus(stepId, "completed");
+          });
         });
 
-        // Add event listeners for step completion buttons
-        document.addEventListener('DOMContentLoaded', () => {
-            document.querySelectorAll('.complete-btn').forEach(button => {
-                button.addEventListener('click', function () {
-                    const stepId = this.getAttribute('data-step-id');
-                    updateStepStatus(stepId, 'completed');
-                });
-            });
-
-            // Add event listeners for step reset buttons
-            document.querySelectorAll('.reset-btn').forEach(button => {
-                button.addEventListener('click', function () {
-                    const stepId = this.getAttribute('data-step-id');
-                    updateStepStatus(stepId, 'in_progress');
-                });
-            });
+        // Add event listeners for step reset buttons
+        document.querySelectorAll(".reset-btn").forEach((button) => {
+          button.addEventListener("click", function () {
+            const stepId = this.getAttribute("data-step-id");
+            updateStepStatus(stepId, "in_progress");
+          });
         });
-        window.addEventListener('load', function () {
-            document.getElementById('loadingOverlay').style.display = 'none';
-        });
+      });
+      window.addEventListener("load", function () {
+        document.getElementById("loadingOverlay").style.display = "none";
+      });
 
-        // Function to update step status via AJAX
-        function updateStepStatus(stepId, status) {
-            fetch(`/update_step/${stepId}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ status: status }),
-            })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // Reload the page to show updated status
-                        window.location.reload();
-                    } else {
-                        alert('Failed to update step status');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('An error occurred while updating the step');
-                });
-        }
-
+      // Function to update step status via AJAX
+      function updateStepStatus(stepId, status) {
+        fetch(`/update_step/${stepId}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ status: status }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              // Reload the page to show updated status
+              window.location.reload();
+            } else {
+              alert("Failed to update step status");
+            }
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            alert("An error occurred while updating the step");
+          });
+      }
     </script>
     <!-- Loading Overlay (hidden by default) -->
-    <div id="loadingOverlay"
-        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(255,255,255,0.8); z-index: 1000; justify-content: center; align-items: center; flex-direction: column;">
-        <div
-            style="width: 50px; height: 50px; border: 5px solid #f3f3f3; border-top: 5px solid #2563eb; border-radius: 50%; animation: spin 1s linear infinite;">
-        </div>
-        <p style="margin-top: 20px; font-size: 1.2rem; color: #333;">Generating Quiz for you..</p>
+    <div
+      id="loadingOverlay"
+      style="
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(255, 255, 255, 0.8);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+      "
+    >
+      <div
+        style="
+          width: 50px;
+          height: 50px;
+          border: 5px solid #f3f3f3;
+          border-top: 5px solid #2563eb;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+        "
+      ></div>
+      <p style="margin-top: 20px; font-size: 1.2rem; color: #333">
+        Generating Quiz for you..
+      </p>
     </div>
 
     <style>
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
-            }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
         }
-    </style>
-</body>
 
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </body>
 </html>

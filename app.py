@@ -89,7 +89,8 @@ class RoadmapStep(db.Model):
     title = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text, nullable=True)
     level = db.Column(db.String(20), nullable=True)
-    resource_link = db.Column(db.String(255), nullable=True)
+    resource_link_video = db.Column(db.String(255), nullable=True)
+    resource_link_webs = db.Column(db.JSON, nullable=True)
     order = db.Column(db.Integer, nullable=False)
     status = db.Column(db.String(20), default='locked')  # 'locked', 'in_progress', 'completed'
     roadmap = db.relationship('Roadmap', backref=db.backref('steps', lazy=True, cascade="all, delete-orphan"))
@@ -340,7 +341,8 @@ def create_roadmap():
                     title=step['title'],
                     description=step['description'],
                     level=step['level'],
-                    resource_link=step.get('res_link', ''),
+                    resource_link_video=step.get('res_link', ''),
+                    resource_link_webs=step.get('resource_link_webs', []),
                     order=i,
                     status=status
                 )
@@ -755,7 +757,8 @@ def upload_syllabus():
                         title=step['title'],
                         description=step['description'],
                         level=step['level'],
-                        resource_link=step.get('res_link', ''),
+                        resource_link_video=step.get('res_link', ''),
+                        resource_link_webs=step.get('resource_link_webs', []),
                         order=i,
                         status=status
                     )
@@ -900,7 +903,7 @@ def quiz(step_id):
         quiz_data = existing_quiz.quiz_data
     else:
         # Generate a new quiz using the step's resource link
-        quiz_data = asyncio.run(generate_quiz(step.resource_link))
+        quiz_data = asyncio.run(generate_quiz(step.resource_link_video))
         if quiz_data == False:
             print("Unable to generate quiz")
             return redirect(url_for('dashboard'))
