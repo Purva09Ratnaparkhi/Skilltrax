@@ -159,6 +159,29 @@ def format_file_size(size_bytes):
         return f"{size_bytes/1024:.1f} KB"
     else:
         return f"{size_bytes/1048576:.1f} MB"
+
+
+def add_completed_roadmap_skill(user_id, roadmap):
+    """Add roadmap title as an advanced skill for a user when roadmap is completed."""
+    if not roadmap or not roadmap.title:
+        return
+
+    skill_name = roadmap.title.strip()
+    if not skill_name:
+        return
+
+    existing_skill = Skills.query.filter(
+        Skills.user_id == user_id,
+        db.func.lower(Skills.skill_name) == skill_name.lower()
+    ).first()
+
+    if not existing_skill:
+        db.session.add(Skills(
+            skill_name=skill_name,
+            level='advanced',
+            user_id=user_id
+        ))
+
 # Home Route
 @app.route('/')
 def home():
@@ -467,6 +490,8 @@ def view_roadmap(roadmap_id):
     
     # Update roadmap progress
     roadmap.progress = progress_percentage
+    if progress_percentage == 100:
+        add_completed_roadmap_skill(user.id, roadmap)
     db.session.commit()
     
     return render_template(
@@ -516,6 +541,8 @@ def update_step_status(step_id):
     progress_percentage = int((completed_steps / len(steps)) * 100)
     
     roadmap.progress = progress_percentage
+    if progress_percentage == 100:
+        add_completed_roadmap_skill(session['user_id'], roadmap)
     db.session.commit()
     
     return jsonify({
