@@ -33,35 +33,18 @@ _checkpointer_cm = None
 
 def _checkpoint_conn_string(path: str) -> str:
     normalized = os.path.abspath(path).replace("\\", "/")
-    return f"sqlite:///{normalized}"
+    return f"sqlite:///{normalized}?check_same_thread=false"
 
 
-def _get_checkpointer() -> SqliteSaver:
-    global _checkpointer, _checkpointer_cm
+def _get_checkpointer():
+    global _checkpointer
+
     if _checkpointer is not None:
         return _checkpointer
 
-    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-    instance_dir = os.path.join(project_root, "instance")
-    os.makedirs(instance_dir, exist_ok=True)
-    db_path = os.path.join(instance_dir, "langgraph_checkpoints.db")
-    if not os.path.exists(db_path):
-        import sqlite3
-        conn = sqlite3.connect(db_path)
-        conn.close()
-    try:
-        checkpointer = SqliteSaver.from_conn_string(_checkpoint_conn_string(db_path))
-    except Exception as exc:
-        print(f"LangGraph checkpoint DB error: {exc}")
-        print(f"Falling back to in-memory checkpointer. Path: {db_path}")
-        checkpointer = MemorySaver()
+    print("✅ Using MemorySaver (SQLite removed to fix DB error)")
 
-    if hasattr(checkpointer, "__enter__"):
-        _checkpointer_cm = checkpointer
-        _checkpointer = checkpointer.__enter__()
-    else:
-        _checkpointer = checkpointer
-
+    _checkpointer = MemorySaver()
     return _checkpointer
 
 

@@ -19,13 +19,25 @@ app.config['SESSION_PERMANENT'] = False
 app.permanent_session_lifetime = timedelta(days=7)
 Session(app)
 
-# Configure SQLAlchemy (Single Database for All User Data)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///skilltrax.db'
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+instance_path = os.path.join(BASE_DIR, 'instance')
+
+# Ensure instance folder exists
+os.makedirs(instance_path, exist_ok=True)
+
+db_path = os.path.join(instance_path, 'skilltrax.db')
+
+app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     "pool_pre_ping": True,
-    "connect_args": {"timeout": 30}
+    "connect_args": {
+        "timeout": 30,
+        "check_same_thread": False   # 🔥 MUST ADD
+    }
 }
+
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 # User Model
@@ -963,6 +975,6 @@ def quiz(step_id):
 
 # Run App
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000,debug=True, threaded=True)
+    app.run(debug=True)
 
 
