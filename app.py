@@ -5,12 +5,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import os
 from datetime import timedelta
 from flask_migrate import Migrate
-from roadmap_generator import gen_roadmap
-import os
 import tempfile
-from syllabus_pro import generator_pro
-from quiz_generator import generate_quiz
-import asyncio
+from langgraph_ai.runner import run_quiz_graph, run_roadmap_graph, run_skill_gap_graph
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -328,12 +324,17 @@ def create_roadmap():
        
         
         # Generate roadmap content
-        roadmap_response = gen_roadmap(
+        roadmap_state = run_roadmap_graph(
             subject_area=title,
             knowledge_level=level,
             learning_goals=goals,
-            custom_requirement=custom_requirements
+            custom_requirement=custom_requirements,
+            thread_id=f"roadmap-{user.id}-{title}"
         )
+        roadmap_response = roadmap_state.get("roadmap_response")
+        if roadmap_state.get("error"):
+            flash(roadmap_state.get("error"))
+            return render_template("create-roadmap.html", user=user)
         
         # Save roadmap steps to database
         if roadmap_response and 'roadmap' in roadmap_response:
@@ -729,15 +730,22 @@ def upload_syllabus():
         file.save(temp_path)
         
         try:
-            from skill_gap_analysis import analyze_skill_gap
-
             skills = Skills.query.filter_by(user_id=user.id).all()
             skills_payload = [
                 {"skill_name": skill.skill_name, "level": skill.level}
                 for skill in skills
             ]
 
-            analysis_result = analyze_skill_gap(temp_path, skills_payload)
+            analysis_state = run_skill_gap_graph(
+                job_description_path=temp_path,
+                skills=skills_payload,
+                thread_id=f"skill-gap-{user.id}-{file.filename}"
+            )
+            if analysis_state.get("error"):
+                flash(analysis_state.get("error"))
+                return redirect(url_for('syllabus'))
+
+            analysis_result = analysis_state.get('skill_gap_response', {})
             subjects = analysis_result.get('subjects', [])
             if not subjects:
                 flash("No skill gaps identified for this job description.")
@@ -749,14 +757,16 @@ def upload_syllabus():
             db.session.commit()
 
             for subject in subjects:
-                roadmap_response = gen_roadmap(
+                roadmap_state = run_roadmap_graph(
                     subject_area=subject.get('subject area', 'Skill Preparation'),
                     knowledge_level=subject.get('current knowledge level', 'Beginner'),
                     learning_goals=subject.get('learning goals', 'Interview Preparation'),
-                    custom_requirement=subject.get('custom requirement', '')
+                    custom_requirement=subject.get('custom requirement', ''),
+                    thread_id=f"prep-{user.id}-{preparation.id}-{subject.get('subject area', 'Skill Preparation')}"
                 )
+                roadmap_response = roadmap_state.get("roadmap_response")
 
-                if not roadmap_response or 'roadmap' not in roadmap_response:
+                if roadmap_state.get("error") or not roadmap_response or 'roadmap' not in roadmap_response:
                     continue
 
                 new_roadmap = Roadmap(
@@ -930,8 +940,16 @@ def quiz(step_id):
         quiz_data = existing_quiz.quiz_data
     else:
         # Generate a new quiz using the step's resource link
-        quiz_data = asyncio.run(generate_quiz(step.resource_link_video))
-        if quiz_data == False:
+        if not step.resource_link_video:
+            flash("No video link available for this step.")
+            return redirect(url_for("view_roadmap", roadmap_id=step.roadmap_id))
+
+        quiz_state = run_quiz_graph(
+            video_url=step.resource_link_video,
+            thread_id=f"quiz-{step.id}"
+        )
+        quiz_data = quiz_state.get("quiz_response")
+        if quiz_state.get("error") or not quiz_data:
             print("Unable to generate quiz")
             return redirect(url_for('dashboard'))
         total_que = len(quiz_data["quiz"])
