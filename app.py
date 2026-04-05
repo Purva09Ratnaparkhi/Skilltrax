@@ -69,6 +69,7 @@ class Quiz(db.Model):
 class Preparation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(150), nullable=False)
+    job_role = db.Column(db.String(150), nullable=True)
 
     def __repr__(self):
         return f'<Preparation {self.name}>'
@@ -759,12 +760,13 @@ def upload_syllabus():
 
             analysis_result = analysis_state.get('skill_gap_response', {})
             subjects = analysis_result.get('subjects', [])
+            job_role = analysis_result.get('job_role', "unknown job role")
             if not subjects:
                 flash("No skill gaps identified for this job description.")
                 return redirect(url_for('syllabus'))
 
-            prep_name = os.path.splitext(file.filename)[0]
-            preparation = Preparation(name=prep_name)
+            prep_name = f"{os.path.splitext(file.filename)[0]}- {job_role}"
+            preparation = Preparation(name=prep_name,job_role= job_role)
             db.session.add(preparation)
             db.session.commit()
 

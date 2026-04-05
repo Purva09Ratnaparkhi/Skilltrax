@@ -146,7 +146,7 @@ def node_analyze_skill_gap(state: GraphState) -> GraphState:
             "Focus on practical skills and real-world applications relevant to the job description."
         )
 
-    return {"skill_gap_response": {"subjects": subjects, "job_role": job_role}}
+    return {"skill_gap_response": {"subjects": subjects, "job_role": job_role}, "job_role": job_role}
 
 
 def node_transcribe_video(state: GraphState) -> GraphState:
