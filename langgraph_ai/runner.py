@@ -89,11 +89,13 @@ def run_syllabus_graph(
 def run_skill_gap_graph(
     job_description_path: str,
     skills,
+    job_role: str,
     thread_id: Optional[str] = None,
 ) -> GraphState:
     state: GraphState = {
         "job_description_path": job_description_path,
         "skills": skills,
+        "job_role": job_role,
     }
     return _invoke_graph("skill_gap", build_skill_gap_graph, state, thread_id)
 

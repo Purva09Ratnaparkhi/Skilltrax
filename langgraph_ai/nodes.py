@@ -1,6 +1,7 @@
 import json
 from typing import Any, Dict, List
 
+from pprint import pprint
 from langgraph_ai.state import GraphState
 from langgraph_ai.tools import (
     SYSTEM_PROMPT_QUIZ,
@@ -112,6 +113,7 @@ def node_extract_job_description_text(state: GraphState) -> GraphState:
 def node_analyze_skill_gap(state: GraphState) -> GraphState:
     job_text = state.get("job_description_text")
     skills = state.get("skills", [])
+    
 
     if not job_text:
         return _append_error(state, "Missing job_description_text")
@@ -135,6 +137,8 @@ def node_analyze_skill_gap(state: GraphState) -> GraphState:
     if response.get("error"):
         return _append_error(state, response["error"])
 
+    pprint(response)
+    job_role = response.get("job role", "Unknown Role")
     subjects = response.get("subjects", [])
     for subject in subjects:
         subject["learning goals"] = "Interview Preparation"
@@ -142,7 +146,7 @@ def node_analyze_skill_gap(state: GraphState) -> GraphState:
             "Focus on practical skills and real-world applications relevant to the job description."
         )
 
-    return {"skill_gap_response": {"subjects": subjects}}
+    return {"skill_gap_response": {"subjects": subjects, "job_role": job_role}}
 
 
 def node_transcribe_video(state: GraphState) -> GraphState:

@@ -125,6 +125,7 @@ Rules:
 Output requirements:
 Return ONLY valid JSON in this structure:
 {
+    \"job role\": \"<name of the job role>\",
     \"subjects\": [
         {
             \"subject area\": \"<name of subject>\",
@@ -225,3 +226,4 @@ def extract_pdf_text(pdf_path: str) -> str:
 
 def transcribe_video(video_url: str) -> Optional[str]:
     return run_async(yt_transcribe(video_url))
+

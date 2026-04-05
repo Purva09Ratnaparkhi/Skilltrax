@@ -21,6 +21,7 @@ class GraphState(TypedDict, total=False):
     syllabus_text: str
     job_description_path: str
     job_description_text: str
+    job_role: str
     skills: List[Dict[str, Any]]
 
     # Quiz inputs
