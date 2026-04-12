@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkillTrax - Interview</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+
+<body>
+    <header>
+        <nav>
+            <div class="logo">SkillTrax</div>
+            <div class="nav-links">
+                <a href="{{ url_for('dashboard') }}">Dashboard</a>
+                <a href="{{ url_for('create_roadmap')}}">Create Roadmap</a>
+                <a href="{{ url_for('syllabus') }}">JD Upload</a>
+                <a href="{{ url_for('profile') }}">Profile</a>
+            </div>
+            <div class="user-menu">
+                <span>Welcome, {{ user.name }}</span>
+                <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="interview-container">
+        <section class="interview-card">
+            <div class="interview-header">
+                <h1>Roadmap Interview</h1>
+                <p class="interview-subtitle">Answer each question with audio and video. You have {{ max_attempts }} attempts per question.</p>
+            </div>
+
+            <div class="interview-progress">
+                <span>Question <strong id="questionIndex">{{ question.question_order }}</strong> of <strong id="questionTotal">{{ session_obj.max_questions }}</strong></span>
+                <span>Attempts: <strong id="attemptsUsed">{{ attempts_used }}</strong> / {{ max_attempts }}</span>
+            </div>
+
+            <div class="question-box" id="questionText">{{ question.question_text }}</div>
+
+            <div class="interview-video-grid">
+                <div>
+                    <h3>Live Preview</h3>
+                    <video id="livePreview" autoplay muted playsinline></video>
+                </div>
+                <div>
+                    <h3>Recorded Preview</h3>
+                    <video id="recordedPreview" controls playsinline></video>
+                </div>
+            </div>
+
+            <div class="interview-controls">
+                <button class="primary-btn" id="startRecording">
+                    <span class="material-icons">fiber_manual_record</span>
+                    Start Recording
+                </button>
+                <button class="secondary-btn" id="stopRecording" disabled>
+                    <span class="material-icons">stop_circle</span>
+                    Stop Recording
+                </button>
+            </div>
+
+            <div class="interview-actions">
+                <button class="primary-btn" id="submitAnswer" disabled>Submit Answer</button>
+                <button class="secondary-btn" id="retryAnswer" disabled>Record Again</button>
+                <button class="primary-btn" id="nextQuestion" disabled>Next Question</button>
+            </div>
+
+            <p class="interview-note">Your answer is evaluated after submission. Behavioral feedback is shown at the end.</p>
+            <div id="statusMessage" class="status-message"></div>
+        </section>
+    </main>
+
+    <script>
+        window.interviewConfig = {
+            sessionId: {{ session_obj.id }},
+            maxAttempts: {{ max_attempts }},
+            maxSeconds: {{ max_seconds }},
+            questionOrder: {{ question.question_order }},
+            maxQuestions: {{ session_obj.max_questions }},
+            attemptsUsed: {{ attempts_used }}
+        };
+    </script>
+    <script src="{{ url_for('static', filename='interview.js') }}"></script>
+</body>
+
+</html>

@@ -186,6 +186,26 @@
         margin-bottom: 30px;
       }
 
+      .interview-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 10px;
+        padding: 10px 16px;
+        background-color: #0f766e;
+        color: #fff;
+        border-radius: 8px;
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 600;
+        transition: transform 0.2s ease, background-color 0.2s ease;
+      }
+
+      .interview-btn:hover {
+        background-color: #0b5f58;
+        transform: translateY(-1px);
+      }
+
       .status-tag {
         padding: 5px 12px;
         border-radius: 20px;
@@ -419,6 +439,11 @@
             {% endif %}
             <span class="progress-text">Progress: {{ progress }}%</span>
           </div>
+
+          <a class="interview-btn" href="{{ url_for('start_interview', roadmap_id=roadmap.id) }}">
+            <span class="material-icons">record_voice_over</span>
+            Start Interview
+          </a>
         </div>
 
         <div class="roadmap-steps">

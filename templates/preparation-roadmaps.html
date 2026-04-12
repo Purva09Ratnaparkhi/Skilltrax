@@ -35,6 +35,15 @@
                 <h1>{{ preparation.name }}</h1>
                 <p>Roadmaps generated for this preparation.</p>
 
+                {% if all_completed %}
+                <a class="interview-btn" href="{{ url_for('start_preparation_interview', preparation_id=preparation.id) }}">
+                    <span class="material-icons">record_voice_over</span>
+                    Start Preparation Interview
+                </a>
+                {% else %}
+                <p class="interview-locked">Complete all roadmaps to unlock the interview.</p>
+                {% endif %}
+
                 <div class="roadmaps-grid">
                     {% if roadmaps %}
                     {% for roadmap in roadmaps %}

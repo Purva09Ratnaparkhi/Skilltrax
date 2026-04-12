@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkillTrax - Interview Summary</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+
+<body>
+    <header>
+        <nav>
+            <div class="logo">SkillTrax</div>
+            <div class="nav-links">
+                <a href="{{ url_for('dashboard') }}">Dashboard</a>
+                <a href="{{ url_for('create_roadmap')}}">Create Roadmap</a>
+                <a href="{{ url_for('syllabus') }}">JD Upload</a>
+                <a href="{{ url_for('profile') }}">Profile</a>
+            </div>
+            <div class="user-menu">
+                <span>Welcome, {{ user.name }}</span>
+                <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="interview-container">
+        <section class="interview-card">
+            <div class="interview-header">
+                <h1>Interview Summary</h1>
+                <p class="interview-subtitle">Your behavioral feedback and answer scores are summarized below.</p>
+            </div>
+
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <h3>Answer Performance</h3>
+                    <p class="summary-score">{{ (answer_summary.get('avg_score', 0) | round(1)) }}%</p>
+                    <p class="summary-note">Average correctness across questions</p>
+                </div>
+                <div class="summary-card">
+                    <h3>Behavior Score</h3>
+                    <p class="summary-score">{{ (behavior_summary.get('avg_behavior_score', 0) | round(1)) }}%</p>
+                    <p class="summary-note">Tone, pace, and expression combined</p>
+                </div>
+                <div class="summary-card">
+                    <h3>Delivery Metrics</h3>
+                    <ul class="summary-list">
+                        <li>Energy: {{ (behavior_summary.get('avg_energy', 0) | round(1)) }}%</li>
+                        <li>Pace: {{ (behavior_summary.get('avg_pace', 0) | round(1)) }}%</li>
+                        <li>Expression: {{ (behavior_summary.get('avg_expression', 0) | round(1)) }}%</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="question-summary">
+                <h2>Question Results</h2>
+                <div class="summary-table">
+                    <div class="summary-row summary-header">
+                        <span>Question</span>
+                        <span>Best Score</span>
+                        <span>Attempts</span>
+                    </div>
+                    {% for item in question_results %}
+                    <div class="summary-row">
+                        <span>{{ item.question }}</span>
+                        <span>{{ item.score }}%</span>
+                        <span>{{ item.attempts }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="summary-actions">
+                {% if session_obj.preparation_id %}
+                <a class="primary-btn" href="{{ url_for('view_preparation', preparation_id=session_obj.preparation_id) }}">Back to Preparation</a>
+                {% else %}
+                <a class="primary-btn" href="{{ url_for('view_roadmap', roadmap_id=session_obj.roadmap_id) }}">Back to Roadmap</a>
+                {% endif %}
+                <a class="secondary-btn" href="{{ url_for('dashboard') }}">Go to Dashboard</a>
+            </div>
+        </section>
+    </main>
+</body>
+
+</html>

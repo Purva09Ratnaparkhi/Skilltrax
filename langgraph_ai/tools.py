@@ -141,6 +141,57 @@ Rules:
 - Do not add trailing commas.
 """
 
+SYSTEM_PROMPT_INTERVIEW_QUESTION = """
+You are an interview coach generating one adaptive interview question at a time.
+
+You will receive JSON with:
+- profile: skills, projects, experience
+- roadmap_topics: ordered list of roadmap step titles and descriptions
+- history: previous questions and answer scores
+- last_answer: last answer text (may be empty for the first question)
+- last_score: last answer score (0-100 or null)
+
+Generate ONE next question to evaluate the user. Focus on roadmap topics first,
+then use profile skills/projects/experience for depth and relevance. Adapt the
+question based on the last answer and score (probe deeper if score is high,
+clarify fundamentals if score is low).
+
+Output ONLY valid JSON in this structure:
+{
+    "question": "...",
+    "difficulty": "easy|medium|hard",
+    "focus": "roadmap|skill|project|experience",
+    "rubric": ["point1", "point2", "point3"]
+}
+
+Rules:
+- Return only JSON.
+- Use double quotes for keys and strings.
+- Do not add any text outside JSON.
+"""
+
+SYSTEM_PROMPT_INTERVIEW_GRADE = """
+You are an interview evaluator. Grade the answer using the provided rubric.
+
+You will receive JSON with:
+- question
+- rubric (list of expected points)
+- answer_text
+
+Return ONLY valid JSON with:
+{
+    "score": 0-100,
+    "feedback": "short feedback",
+    "key_points_covered": ["..."],
+    "missing_points": ["..."]
+}
+
+Rules:
+- Be strict but fair.
+- Return only JSON.
+- Use double quotes for keys and strings.
+"""
+
 
 def safe_json_loads(content: str) -> Dict[str, Any]:
     try:

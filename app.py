@@ -2,11 +2,19 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 from flask_sqlalchemy import SQLAlchemy
 from flask_session import Session
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 import os
+import json
 from datetime import timedelta
 from flask_migrate import Migrate
 import tempfile
 from langgraph_ai.runner import run_quiz_graph, run_roadmap_graph, run_skill_gap_graph
+from interview_agent import (
+    analyze_behavior_metrics,
+    generate_interview_question,
+    grade_interview_answer,
+    transcribe_video,
+)
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -145,6 +153,46 @@ class Experience(db.Model):
         return f'<Experience {self.role} at {self.company_name}>'
 
 
+class InterviewSession(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    roadmap_id = db.Column(db.Integer, db.ForeignKey('roadmap.id'), nullable=True)
+    preparation_id = db.Column(db.Integer, db.ForeignKey('preparation.id'), nullable=True)
+    status = db.Column(db.String(20), default='in_progress')
+    current_question_order = db.Column(db.Integer, default=1)
+    max_questions = db.Column(db.Integer, default=5)
+    behavior_summary = db.Column(db.JSON, nullable=True)
+    answer_summary = db.Column(db.JSON, nullable=True)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    completed_at = db.Column(db.DateTime, nullable=True)
+    user = db.relationship('User', backref=db.backref('interviews', lazy=True, cascade="all, delete-orphan"))
+    roadmap = db.relationship('Roadmap', backref=db.backref('interviews', lazy=True, cascade="all, delete-orphan"))
+    preparation = db.relationship('Preparation', backref=db.backref('interviews', lazy=True, cascade="all, delete-orphan"))
+
+
+class InterviewQuestion(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    session_id = db.Column(db.Integer, db.ForeignKey('interview_session.id'), nullable=False)
+    question_text = db.Column(db.Text, nullable=False)
+    question_order = db.Column(db.Integer, nullable=False)
+    difficulty = db.Column(db.String(20), nullable=True)
+    focus = db.Column(db.String(20), nullable=True)
+    rubric = db.Column(db.JSON, nullable=True)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    session = db.relationship('InterviewSession', backref=db.backref('questions', lazy=True, cascade="all, delete-orphan"))
+
+
+class InterviewResponse(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    question_id = db.Column(db.Integer, db.ForeignKey('interview_question.id'), nullable=False)
+    attempt_number = db.Column(db.Integer, nullable=False)
+    answer_score = db.Column(db.Integer, nullable=False)
+    behavior_scores = db.Column(db.JSON, nullable=False)
+    feedback = db.Column(db.JSON, nullable=True)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    question = db.relationship('InterviewQuestion', backref=db.backref('responses', lazy=True, cascade="all, delete-orphan"))
+
+
 # Initialize database within app context
 with app.app_context():
     db.create_all()
@@ -190,6 +238,124 @@ def add_completed_roadmap_skill(user_id, roadmap):
             level='advanced',
             user_id=user_id
         ))
+
+
+INTERVIEW_MAX_ATTEMPTS = 2
+INTERVIEW_MAX_SECONDS = 120
+INTERVIEW_MAX_QUESTIONS = int(os.getenv('INTERVIEW_MAX_QUESTIONS', '5'))
+
+
+def _build_profile_context(user: User) -> dict:
+    skills = Skills.query.filter_by(user_id=user.id).all()
+    projects = Project.query.filter_by(user_id=user.id).all()
+    experiences = Experience.query.filter_by(user_id=user.id).all()
+
+    return {
+        "skills": [
+            {"name": skill.skill_name, "level": skill.level}
+            for skill in skills
+        ],
+        "projects": [
+            {"name": project.project_name, "description": project.description}
+            for project in projects
+        ],
+        "experience": [
+            {
+                "role": experience.role,
+                "company": experience.company_name,
+                "description": experience.description,
+            }
+            for experience in experiences
+        ],
+    }
+
+
+def _build_roadmap_topics(roadmap_id: int) -> list:
+    steps = RoadmapStep.query.filter_by(roadmap_id=roadmap_id).order_by(RoadmapStep.order).all()
+    return [
+        {
+            "title": step.title,
+            "description": step.description or "",
+            "level": step.level or "",
+        }
+        for step in steps
+    ]
+
+
+def _build_preparation_topics(preparation_id: int, user_id: int) -> list:
+    roadmaps = Roadmap.query.filter_by(preparation_id=preparation_id, user_id=user_id).all()
+    topics = []
+    for roadmap in roadmaps:
+        steps = RoadmapStep.query.filter_by(roadmap_id=roadmap.id).order_by(RoadmapStep.order).all()
+        topics.append({
+            "roadmap": roadmap.title,
+            "subtopics": [
+                {
+                    "title": step.title,
+                    "description": step.description or "",
+                    "level": step.level or "",
+                }
+                for step in steps
+            ]
+        })
+    return topics
+
+
+def _get_current_question(session_obj: InterviewSession) -> InterviewQuestion:
+    return InterviewQuestion.query.filter_by(
+        session_id=session_obj.id,
+        question_order=session_obj.current_question_order
+    ).first()
+
+
+def _get_best_response(question: InterviewQuestion) -> InterviewResponse:
+    responses = InterviewResponse.query.filter_by(question_id=question.id).all()
+    if not responses:
+        return None
+    return max(responses, key=lambda resp: resp.answer_score)
+
+
+def _update_behavior_summary(session_obj: InterviewSession, behavior_scores: dict) -> None:
+    summary = session_obj.behavior_summary or {}
+    count = int(summary.get("responses", 0))
+    new_count = count + 1
+
+    def _avg(prev_key, new_value):
+        prev_avg = float(summary.get(prev_key, 0.0))
+        return (prev_avg * count + new_value) / new_count
+
+    summary["responses"] = new_count
+    summary["avg_energy"] = _avg("avg_energy", float(behavior_scores.get("energy_score", 50.0)))
+    summary["avg_pace"] = _avg("avg_pace", float(behavior_scores.get("pace_score", 50.0)))
+    summary["avg_expression"] = _avg("avg_expression", float(behavior_scores.get("expression_score", 50.0)))
+    summary["avg_behavior_score"] = _avg("avg_behavior_score", float(behavior_scores.get("behavior_score", 50.0)))
+    session_obj.behavior_summary = summary
+
+
+def _update_answer_summary(session_obj: InterviewSession, answer_score: int) -> None:
+    summary = session_obj.answer_summary or {}
+    count = int(summary.get("responses", 0))
+    new_count = count + 1
+
+    prev_avg = float(summary.get("avg_score", 0.0))
+    summary["responses"] = new_count
+    summary["avg_score"] = (prev_avg * count + answer_score) / new_count
+    summary["last_score"] = answer_score
+    session_obj.answer_summary = summary
+
+
+def _build_question_history(session_obj: InterviewSession) -> list:
+    questions = InterviewQuestion.query.filter_by(session_id=session_obj.id).order_by(InterviewQuestion.question_order).all()
+    history = []
+    for question in questions:
+        best_response = _get_best_response(question)
+        history.append({
+            "question": question.question_text,
+            "difficulty": question.difficulty,
+            "focus": question.focus,
+            "score": best_response.answer_score if best_response else None,
+        })
+    return history
 
 # Home Route
 @app.route('/')
@@ -854,11 +1020,14 @@ def view_preparation(preparation_id):
         user_id=user.id
     ).all()
 
+    all_completed = bool(roadmaps) and all(roadmap.progress == 100 for roadmap in roadmaps)
+
     return render_template(
         'preparation-roadmaps.html',
         user=user,
         preparation=preparation,
-        roadmaps=roadmaps
+        roadmaps=roadmaps,
+        all_completed=all_completed
     )
 
 
@@ -939,6 +1108,363 @@ def profile():
         skills=skills,
         projects=projects,
         experiences=experiences
+    )
+
+
+@app.route('/interview/start/<int:roadmap_id>')
+def start_interview(roadmap_id):
+    if 'user_id' not in session:
+        flash("You must log in first!")
+        return redirect(url_for('login'))
+
+    user = User.query.get(session['user_id'])
+    if not user:
+        flash("User not found, please log in again.")
+        return redirect(url_for('login'))
+
+    roadmap = Roadmap.query.get_or_404(roadmap_id)
+    if roadmap.user_id != user.id:
+        flash("You don't have permission to start this interview.")
+        return redirect(url_for('dashboard'))
+
+    profile_context = _build_profile_context(user)
+    roadmap_topics = _build_roadmap_topics(roadmap.id)
+
+    payload = {
+        "profile": profile_context,
+        "roadmap_topics": roadmap_topics,
+        "history": [],
+        "last_answer": "",
+        "last_score": None,
+    }
+
+    question_data = generate_interview_question(payload)
+    if question_data.get("error"):
+        flash("Unable to start interview. Please try again.")
+        return redirect(url_for('view_roadmap', roadmap_id=roadmap.id))
+
+    question_text = question_data.get("question") or "Explain a key concept from this roadmap."
+    rubric = question_data.get("rubric") or ["Clear explanation", "Correct terminology", "Relevant example"]
+
+    interview_session = InterviewSession(
+        user_id=user.id,
+        roadmap_id=roadmap.id,
+        max_questions=INTERVIEW_MAX_QUESTIONS
+    )
+    db.session.add(interview_session)
+    db.session.commit()
+
+    question = InterviewQuestion(
+        session_id=interview_session.id,
+        question_text=question_text,
+        question_order=1,
+        difficulty=question_data.get("difficulty"),
+        focus=question_data.get("focus"),
+        rubric=rubric
+    )
+    db.session.add(question)
+    db.session.commit()
+
+    return redirect(url_for('interview_session', session_id=interview_session.id))
+
+
+@app.route('/interview/preparation/start/<int:preparation_id>')
+def start_preparation_interview(preparation_id):
+    if 'user_id' not in session:
+        flash("You must log in first!")
+        return redirect(url_for('login'))
+
+    user = User.query.get(session['user_id'])
+    if not user:
+        flash("User not found, please log in again.")
+        return redirect(url_for('login'))
+
+    preparation = Preparation.query.get_or_404(preparation_id)
+    roadmaps = Roadmap.query.filter_by(preparation_id=preparation.id, user_id=user.id).all()
+    if not roadmaps:
+        flash("No roadmaps found for this preparation.")
+        return redirect(url_for('view_preparation', preparation_id=preparation.id))
+
+    if any(roadmap.progress < 100 for roadmap in roadmaps):
+        flash("Complete all preparation roadmaps before starting the interview.")
+        return redirect(url_for('view_preparation', preparation_id=preparation.id))
+
+    profile_context = _build_profile_context(user)
+    preparation_topics = _build_preparation_topics(preparation.id, user.id)
+
+    payload = {
+        "profile": profile_context,
+        "roadmap_topics": preparation_topics,
+        "history": [],
+        "last_answer": "",
+        "last_score": None,
+    }
+
+    question_data = generate_interview_question(payload)
+    if question_data.get("error"):
+        flash("Unable to start interview. Please try again.")
+        return redirect(url_for('view_preparation', preparation_id=preparation.id))
+
+    question_text = question_data.get("question") or "Summarize a key topic from this preparation."
+    rubric = question_data.get("rubric") or ["Clear explanation", "Correct terminology", "Relevant example"]
+
+    interview_session = InterviewSession(
+        user_id=user.id,
+        roadmap_id=None,
+        preparation_id=preparation.id,
+        max_questions=INTERVIEW_MAX_QUESTIONS
+    )
+    db.session.add(interview_session)
+    db.session.commit()
+
+    question = InterviewQuestion(
+        session_id=interview_session.id,
+        question_text=question_text,
+        question_order=1,
+        difficulty=question_data.get("difficulty"),
+        focus=question_data.get("focus"),
+        rubric=rubric
+    )
+    db.session.add(question)
+    db.session.commit()
+
+    return redirect(url_for('interview_session', session_id=interview_session.id))
+
+
+@app.route('/interview/<int:session_id>')
+def interview_session(session_id):
+    if 'user_id' not in session:
+        flash("You must log in first!")
+        return redirect(url_for('login'))
+
+    user = User.query.get(session['user_id'])
+    if not user:
+        flash("User not found, please log in again.")
+        return redirect(url_for('login'))
+
+    interview_session_obj = InterviewSession.query.get_or_404(session_id)
+    if interview_session_obj.user_id != user.id:
+        flash("You don't have permission to view this interview.")
+        return redirect(url_for('dashboard'))
+
+    if interview_session_obj.status == 'completed':
+        return redirect(url_for('interview_summary', session_id=interview_session_obj.id))
+
+    question = _get_current_question(interview_session_obj)
+    if not question:
+        flash("Interview question not found.")
+        return redirect(url_for('dashboard'))
+
+    attempts_used = InterviewResponse.query.filter_by(question_id=question.id).count()
+
+    return render_template(
+        'interview.html',
+        user=user,
+        session_obj=interview_session_obj,
+        question=question,
+        attempts_used=attempts_used,
+        max_attempts=INTERVIEW_MAX_ATTEMPTS,
+        max_seconds=INTERVIEW_MAX_SECONDS
+    )
+
+
+@app.route('/api/interview/<int:session_id>/submit', methods=['POST'])
+def submit_interview_answer(session_id):
+    if 'user_id' not in session:
+        return jsonify({'error': 'User not logged in'}), 401
+
+    interview_session_obj = InterviewSession.query.get_or_404(session_id)
+    if interview_session_obj.user_id != session['user_id']:
+        return jsonify({'error': 'Not authorized'}), 403
+
+    if interview_session_obj.status != 'in_progress':
+        return jsonify({'error': 'Interview already completed'}), 400
+
+    question = _get_current_question(interview_session_obj)
+    if not question:
+        return jsonify({'error': 'Question not found'}), 404
+
+    attempts_used = InterviewResponse.query.filter_by(question_id=question.id).count()
+    if attempts_used >= INTERVIEW_MAX_ATTEMPTS:
+        return jsonify({'error': 'No attempts left', 'attempts_left': 0}), 400
+
+    video_file = request.files.get('video')
+    if not video_file:
+        return jsonify({'error': 'No video uploaded'}), 400
+
+    temp_dir = tempfile.mkdtemp(prefix='interview-')
+    filename = secure_filename(video_file.filename or 'answer.webm')
+    video_path = os.path.join(temp_dir, filename)
+    video_file.save(video_path)
+
+    transcript, transcript_error = transcribe_video(video_path)
+    transcript = transcript or ""
+
+    grade_payload = {
+        "question": question.question_text,
+        "rubric": question.rubric or [],
+        "answer_text": transcript
+    }
+    grade_result = grade_interview_answer(grade_payload)
+    answer_score = int(grade_result.get("score") or 0)
+    feedback = {
+        "feedback": grade_result.get("feedback", ""),
+        "key_points_covered": grade_result.get("key_points_covered", []),
+        "missing_points": grade_result.get("missing_points", []),
+        "transcript_error": transcript_error,
+    }
+
+    behavior_scores = analyze_behavior_metrics(video_path, transcript)
+
+    response = InterviewResponse(
+        question_id=question.id,
+        attempt_number=attempts_used + 1,
+        answer_score=answer_score,
+        behavior_scores=behavior_scores,
+        feedback=feedback
+    )
+    db.session.add(response)
+
+    _update_behavior_summary(interview_session_obj, behavior_scores)
+    _update_answer_summary(interview_session_obj, answer_score)
+    db.session.commit()
+
+    try:
+        os.remove(video_path)
+        os.rmdir(temp_dir)
+    except Exception:
+        pass
+
+    new_attempts_used = attempts_used + 1
+    return jsonify({
+        'status': 'recorded',
+        'attempts_used': new_attempts_used,
+        'attempts_left': max(0, INTERVIEW_MAX_ATTEMPTS - new_attempts_used),
+        'can_advance': True
+    })
+
+
+@app.route('/api/interview/<int:session_id>/advance', methods=['POST'])
+def advance_interview(session_id):
+    if 'user_id' not in session:
+        return jsonify({'error': 'User not logged in'}), 401
+
+    interview_session_obj = InterviewSession.query.get_or_404(session_id)
+    if interview_session_obj.user_id != session['user_id']:
+        return jsonify({'error': 'Not authorized'}), 403
+
+    if interview_session_obj.status != 'in_progress':
+        return jsonify({'error': 'Interview already completed'}), 400
+
+    current_question = _get_current_question(interview_session_obj)
+    if not current_question:
+        return jsonify({'error': 'Question not found'}), 404
+
+    responses = InterviewResponse.query.filter_by(question_id=current_question.id).all()
+    if not responses:
+        return jsonify({'error': 'Submit at least one answer first'}), 400
+
+    if interview_session_obj.current_question_order >= interview_session_obj.max_questions:
+        interview_session_obj.status = 'completed'
+        interview_session_obj.completed_at = db.func.current_timestamp()
+        db.session.commit()
+        return jsonify({
+            'status': 'completed',
+            'summary_url': url_for('interview_summary', session_id=interview_session_obj.id)
+        })
+
+    best_response = max(responses, key=lambda resp: resp.answer_score)
+    feedback = best_response.feedback or {}
+    covered = feedback.get("key_points_covered", [])
+    missing = feedback.get("missing_points", [])
+    last_answer_summary = "Covered: {covered}. Missing: {missing}.".format(
+        covered=", ".join(covered) if covered else "none",
+        missing=", ".join(missing) if missing else "none"
+    )
+
+    user = User.query.get(interview_session_obj.user_id)
+    profile_context = _build_profile_context(user)
+    if interview_session_obj.preparation_id:
+        roadmap_topics = _build_preparation_topics(interview_session_obj.preparation_id, user.id)
+    else:
+        roadmap_topics = _build_roadmap_topics(interview_session_obj.roadmap_id)
+    history = _build_question_history(interview_session_obj)
+
+    payload = {
+        "profile": profile_context,
+        "roadmap_topics": roadmap_topics,
+        "history": history,
+        "last_answer": last_answer_summary,
+        "last_score": best_response.answer_score,
+    }
+
+    question_data = generate_interview_question(payload)
+    if question_data.get("error"):
+        return jsonify({'error': 'Unable to generate next question'}), 500
+
+    question_text = question_data.get("question") or "Explain a key concept from this roadmap."
+    rubric = question_data.get("rubric") or ["Clear explanation", "Correct terminology", "Relevant example"]
+    next_order = interview_session_obj.current_question_order + 1
+
+    next_question = InterviewQuestion(
+        session_id=interview_session_obj.id,
+        question_text=question_text,
+        question_order=next_order,
+        difficulty=question_data.get("difficulty"),
+        focus=question_data.get("focus"),
+        rubric=rubric
+    )
+
+    interview_session_obj.current_question_order = next_order
+    db.session.add(next_question)
+    db.session.commit()
+
+    return jsonify({
+        'status': 'next',
+        'question': question_text,
+        'order': next_order,
+        'max_questions': interview_session_obj.max_questions,
+        'attempts_used': 0
+    })
+
+
+@app.route('/interview/<int:session_id>/summary')
+def interview_summary(session_id):
+    if 'user_id' not in session:
+        flash("You must log in first!")
+        return redirect(url_for('login'))
+
+    user = User.query.get(session['user_id'])
+    if not user:
+        flash("User not found, please log in again.")
+        return redirect(url_for('login'))
+
+    interview_session_obj = InterviewSession.query.get_or_404(session_id)
+    if interview_session_obj.user_id != user.id:
+        flash("You don't have permission to view this interview.")
+        return redirect(url_for('dashboard'))
+
+    questions = InterviewQuestion.query.filter_by(session_id=interview_session_obj.id).order_by(InterviewQuestion.question_order).all()
+    question_results = []
+    for question in questions:
+        responses = InterviewResponse.query.filter_by(question_id=question.id).all()
+        best_response = max(responses, key=lambda resp: resp.answer_score) if responses else None
+        question_results.append({
+            "question": question.question_text,
+            "score": best_response.answer_score if best_response else 0,
+            "attempts": len(responses)
+        })
+
+    behavior_summary = interview_session_obj.behavior_summary or {}
+    answer_summary = interview_session_obj.answer_summary or {}
+
+    return render_template(
+        'interview_summary.html',
+        user=user,
+        session_obj=interview_session_obj,
+        behavior_summary=behavior_summary,
+        answer_summary=answer_summary,
+        question_results=question_results
     )
 
 @app.route("/quiz/<int:step_id>")
