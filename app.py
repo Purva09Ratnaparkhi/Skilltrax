@@ -243,6 +243,19 @@ def add_completed_roadmap_skill(user_id, roadmap):
 INTERVIEW_MAX_ATTEMPTS = 2
 INTERVIEW_MAX_SECONDS = 120
 INTERVIEW_MAX_QUESTIONS = int(os.getenv('INTERVIEW_MAX_QUESTIONS', '5'))
+INTERVIEW_LOG_DIR = os.path.join(instance_path, 'interview_logs')
+
+
+def _log_interview_payload(payload: dict, session_id: int, stage: str) -> None:
+    os.makedirs(INTERVIEW_LOG_DIR, exist_ok=True)
+    safe_stage = stage.replace(" ", "_")
+    filename = f"interview_payload_{session_id}_{safe_stage}.json"
+    path = os.path.join(INTERVIEW_LOG_DIR, filename)
+    try:
+        with open(path, "w", encoding="utf-8") as handle:
+            json.dump(payload, handle, indent=2)
+    except Exception:
+        pass
 
 
 def _build_profile_context(user: User) -> dict:
@@ -1138,6 +1151,7 @@ def start_interview(roadmap_id):
         "last_score": None,
     }
 
+
     question_data = generate_interview_question(payload)
     if question_data.get("error"):
         flash("Unable to start interview. Please try again.")
@@ -1153,6 +1167,8 @@ def start_interview(roadmap_id):
     )
     db.session.add(interview_session)
     db.session.commit()
+
+    _log_interview_payload(payload, interview_session.id, "start")
 
     question = InterviewQuestion(
         session_id=interview_session.id,
@@ -1200,6 +1216,7 @@ def start_preparation_interview(preparation_id):
         "last_score": None,
     }
 
+
     question_data = generate_interview_question(payload)
     if question_data.get("error"):
         flash("Unable to start interview. Please try again.")
@@ -1216,6 +1233,8 @@ def start_preparation_interview(preparation_id):
     )
     db.session.add(interview_session)
     db.session.commit()
+
+    _log_interview_payload(payload, interview_session.id, "start")
 
     question = InterviewQuestion(
         session_id=interview_session.id,
@@ -1397,6 +1416,8 @@ def advance_interview(session_id):
         "last_answer": last_answer_summary,
         "last_score": best_response.answer_score,
     }
+
+    _log_interview_payload(payload, interview_session_obj.id, f"advance_{interview_session_obj.current_question_order}")
 
     question_data = generate_interview_question(payload)
     if question_data.get("error"):
