@@ -5,6 +5,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 import os
 import json
+import re
+from difflib import SequenceMatcher
 from datetime import timedelta
 from flask_migrate import Migrate
 import tempfile
@@ -245,6 +247,7 @@ INTERVIEW_MAX_ATTEMPTS = 2
 INTERVIEW_MAX_SECONDS = 120
 INTERVIEW_MAX_QUESTIONS = int(os.getenv('INTERVIEW_MAX_QUESTIONS', '5'))
 INTERVIEW_LOG_DIR = os.path.join(instance_path, 'interview_logs')
+INTERVIEW_LOW_SCORE_THRESHOLD = int(os.getenv('INTERVIEW_LOW_SCORE_THRESHOLD', '60'))
 
 
 def _log_interview_payload(payload: dict, session_id: int, stage: str) -> None:
@@ -345,8 +348,9 @@ def _build_interview_question_payload(
     last_score: Optional[int],
     question_order: int,
     question_plan: dict,
+    generation_guidance: Optional[dict] = None,
 ) -> dict:
-    return {
+    payload = {
         "profile": profile_context,
         "roadmap_topics": roadmap_topics,
         "history": history,
@@ -356,6 +360,64 @@ def _build_interview_question_payload(
         "current_focus": _focus_for_question_order(question_order, question_plan),
         "question_plan": question_plan,
     }
+    if generation_guidance:
+        payload["generation_guidance"] = generation_guidance
+    return payload
+
+
+def _normalize_question_text(text: str) -> str:
+    normalized = re.sub(r"[^a-z0-9\s]", " ", (text or "").lower())
+    normalized = re.sub(r"\s+", " ", normalized).strip()
+    return normalized
+
+
+def _is_similar_question(candidate: str, references: list, threshold: float = 0.72) -> bool:
+    candidate_norm = _normalize_question_text(candidate)
+    if not candidate_norm:
+        return False
+
+    for reference in references:
+        reference_norm = _normalize_question_text(reference)
+        if not reference_norm:
+            continue
+        similarity = SequenceMatcher(None, candidate_norm, reference_norm).ratio()
+        if similarity >= threshold:
+            return True
+
+    return False
+
+
+def _build_generation_guidance(history: list) -> dict:
+    if not history:
+        return {}
+
+    last = history[-1]
+    previous = history[-2] if len(history) >= 2 else None
+
+    last_score = last.get("score")
+    previous_score = previous.get("score") if previous else None
+
+    last_low = isinstance(last_score, (int, float)) and last_score < INTERVIEW_LOW_SCORE_THRESHOLD
+    previous_low = isinstance(previous_score, (int, float)) and previous_score < INTERVIEW_LOW_SCORE_THRESHOLD
+
+    same_focus_as_previous = bool(previous) and (previous.get("focus") == last.get("focus"))
+    repeated_low_same_focus = last_low and previous_low and same_focus_as_previous
+
+    avoid_questions = []
+    if last_low and last.get("question"):
+        avoid_questions.append(last.get("question"))
+    if repeated_low_same_focus and previous and previous.get("question"):
+        avoid_questions.append(previous.get("question"))
+
+    guidance = {
+        "low_score_threshold": INTERVIEW_LOW_SCORE_THRESHOLD,
+        "last_score_low": last_low,
+        "repeated_low_same_focus": repeated_low_same_focus,
+        "prefer_new_topic": last_low,
+        "avoid_question_texts": avoid_questions,
+        "target_difficulty": "easy" if last_low else "medium",
+    }
+    return guidance
 
 
 def _get_current_question(session_obj: InterviewSession) -> InterviewQuestion:
@@ -1456,6 +1518,7 @@ def advance_interview(session_id):
     question_plan = _build_interview_plan(profile_context, roadmap_topics)
     history = _build_question_history(interview_session_obj)
     next_order = interview_session_obj.current_question_order + 1
+    generation_guidance = _build_generation_guidance(history)
 
     payload = _build_interview_question_payload(
         profile_context=profile_context,
@@ -1465,6 +1528,7 @@ def advance_interview(session_id):
         last_score=best_response.answer_score,
         question_order=next_order,
         question_plan=question_plan,
+        generation_guidance=generation_guidance,
     )
 
     _log_interview_payload(payload, interview_session_obj.id, f"advance_{interview_session_obj.current_question_order}")
@@ -1481,7 +1545,26 @@ def advance_interview(session_id):
     }
 
     question_text = question_data.get("question") or fallback_questions.get(next_focus, "Explain a key concept from your preparation.")
+
+    avoid_question_texts = generation_guidance.get("avoid_question_texts", [])
+    if generation_guidance.get("prefer_new_topic") and _is_similar_question(question_text, avoid_question_texts):
+        retry_payload = dict(payload)
+        retry_payload["generation_guidance"] = {
+            **generation_guidance,
+            "force_topic_switch": True,
+            "retry_reason": "previous suggestion was too similar to a low-score question",
+        }
+        retry_data = generate_interview_question(retry_payload)
+        if not retry_data.get("error"):
+            retry_question = retry_data.get("question") or ""
+            if retry_question and not _is_similar_question(retry_question, avoid_question_texts):
+                question_data = retry_data
+                question_text = retry_question
+
     rubric = question_data.get("rubric") or ["Clear explanation", "Correct terminology", "Relevant example"]
+    target_difficulty = generation_guidance.get("target_difficulty")
+    if target_difficulty == "easy" and not question_data.get("difficulty"):
+        question_data["difficulty"] = "easy"
 
     next_question = InterviewQuestion(
         session_id=interview_session_obj.id,

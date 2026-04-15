@@ -153,6 +153,13 @@ You will receive JSON with:
 - question_order: 1-based index of the next question to generate
 - current_focus: one of general|roadmap|project|experience
 - question_plan: question distribution counts
+- generation_guidance (optional):
+    - last_score_low
+    - repeated_low_same_focus
+    - prefer_new_topic
+    - avoid_question_texts
+    - target_difficulty
+    - force_topic_switch
 
 Generate ONE next question to evaluate the user.
 
@@ -166,11 +173,17 @@ Use current_focus and question_order strictly. Adapt the depth based on last_sco
 - high score: ask deeper follow-up
 - low score: ask simpler clarification
 
+Important behavior rules:
+- Do not repeat or paraphrase questions from avoid_question_texts.
+- If prefer_new_topic is true, switch to a different topic within current_focus.
+- If repeated_low_same_focus or force_topic_switch is true, do not ask same-topic follow-up; ask a new topic with lower difficulty.
+- Prefer difficulty that matches target_difficulty when provided.
+
 Output ONLY valid JSON in this structure:
 {
     "question": "...",
     "difficulty": "easy|medium|hard",
-    "focus": "roadmap|skill|project|experience",
+    "focus": "general|roadmap|project|experience",
     "rubric": ["point1", "point2", "point3"]
 }
 
