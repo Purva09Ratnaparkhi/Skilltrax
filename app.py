@@ -8,6 +8,7 @@ import json
 from datetime import timedelta
 from flask_migrate import Migrate
 import tempfile
+from typing import Optional
 from langgraph_ai.runner import run_quiz_graph, run_roadmap_graph, run_skill_gap_graph
 from interview_agent import (
     analyze_behavior_metrics,
@@ -259,15 +260,10 @@ def _log_interview_payload(payload: dict, session_id: int, stage: str) -> None:
 
 
 def _build_profile_context(user: User) -> dict:
-    skills = Skills.query.filter_by(user_id=user.id).all()
     projects = Project.query.filter_by(user_id=user.id).all()
     experiences = Experience.query.filter_by(user_id=user.id).all()
 
     return {
-        "skills": [
-            {"name": skill.skill_name, "level": skill.level}
-            for skill in skills
-        ],
         "projects": [
             {"name": project.project_name, "description": project.description}
             for project in projects
@@ -285,14 +281,7 @@ def _build_profile_context(user: User) -> dict:
 
 def _build_roadmap_topics(roadmap_id: int) -> list:
     steps = RoadmapStep.query.filter_by(roadmap_id=roadmap_id).order_by(RoadmapStep.order).all()
-    return [
-        {
-            "title": step.title,
-            "description": step.description or "",
-            "level": step.level or "",
-        }
-        for step in steps
-    ]
+    return [step.title for step in steps if step.title]
 
 
 def _build_preparation_topics(preparation_id: int, user_id: int) -> list:
@@ -302,16 +291,71 @@ def _build_preparation_topics(preparation_id: int, user_id: int) -> list:
         steps = RoadmapStep.query.filter_by(roadmap_id=roadmap.id).order_by(RoadmapStep.order).all()
         topics.append({
             "roadmap": roadmap.title,
-            "subtopics": [
-                {
-                    "title": step.title,
-                    "description": step.description or "",
-                    "level": step.level or "",
-                }
-                for step in steps
-            ]
+            "subtopics": [step.title for step in steps if step.title]
         })
     return topics
+
+
+def _count_roadmap_topics(roadmap_topics: list) -> int:
+    if not roadmap_topics:
+        return 0
+
+    if isinstance(roadmap_topics[0], str):
+        return len(roadmap_topics)
+
+    count = 0
+    for topic in roadmap_topics:
+        count += len(topic.get("subtopics", []))
+    return count
+
+
+def _build_interview_plan(profile_context: dict, roadmap_topics: list) -> dict:
+    roadmap_topic_count = _count_roadmap_topics(roadmap_topics)
+    roadmap_questions = 6 if roadmap_topic_count >= 6 else 5
+
+    plan = {
+        "general_questions": 1,
+        "roadmap_questions": roadmap_questions,
+        "project_questions": 2,
+        "experience_questions": 1,
+    }
+    plan["total_questions"] = sum(plan.values())
+    return plan
+
+
+def _focus_for_question_order(question_order: int, question_plan: dict) -> str:
+    general_end = int(question_plan.get("general_questions", 1))
+    roadmap_end = general_end + int(question_plan.get("roadmap_questions", 5))
+    project_end = roadmap_end + int(question_plan.get("project_questions", 2))
+
+    if question_order <= general_end:
+        return "general"
+    if question_order <= roadmap_end:
+        return "roadmap"
+    if question_order <= project_end:
+        return "project"
+    return "experience"
+
+
+def _build_interview_question_payload(
+    profile_context: dict,
+    roadmap_topics: list,
+    history: list,
+    last_answer: str,
+    last_score: Optional[int],
+    question_order: int,
+    question_plan: dict,
+) -> dict:
+    return {
+        "profile": profile_context,
+        "roadmap_topics": roadmap_topics,
+        "history": history,
+        "last_answer": last_answer,
+        "last_score": last_score,
+        "question_order": question_order,
+        "current_focus": _focus_for_question_order(question_order, question_plan),
+        "question_plan": question_plan,
+    }
 
 
 def _get_current_question(session_obj: InterviewSession) -> InterviewQuestion:
@@ -1142,28 +1186,29 @@ def start_interview(roadmap_id):
 
     profile_context = _build_profile_context(user)
     roadmap_topics = _build_roadmap_topics(roadmap.id)
+    question_plan = _build_interview_plan(profile_context, roadmap_topics)
 
-    payload = {
-        "profile": profile_context,
-        "roadmap_topics": roadmap_topics,
-        "history": [],
-        "last_answer": "",
-        "last_score": None,
-    }
+    payload = _build_interview_question_payload(
+        profile_context=profile_context,
+        roadmap_topics=roadmap_topics,
+        history=[],
+        last_answer="",
+        last_score=None,
+        question_order=2,
+        question_plan=question_plan,
+    )
 
-
-    question_data = generate_interview_question(payload)
-    if question_data.get("error"):
-        flash("Unable to start interview. Please try again.")
-        return redirect(url_for('view_roadmap', roadmap_id=roadmap.id))
-
-    question_text = question_data.get("question") or "Explain a key concept from this roadmap."
-    rubric = question_data.get("rubric") or ["Clear explanation", "Correct terminology", "Relevant example"]
+    question_text = "Introduce yourself and briefly summarize your learning journey so far."
+    rubric = [
+        "Clear and structured introduction",
+        "Relevant background highlights",
+        "Confident and concise delivery",
+    ]
 
     interview_session = InterviewSession(
         user_id=user.id,
         roadmap_id=roadmap.id,
-        max_questions=INTERVIEW_MAX_QUESTIONS
+        max_questions=question_plan["total_questions"]
     )
     db.session.add(interview_session)
     db.session.commit()
@@ -1174,8 +1219,8 @@ def start_interview(roadmap_id):
         session_id=interview_session.id,
         question_text=question_text,
         question_order=1,
-        difficulty=question_data.get("difficulty"),
-        focus=question_data.get("focus"),
+        difficulty="easy",
+        focus="general",
         rubric=rubric
     )
     db.session.add(question)
@@ -1207,29 +1252,30 @@ def start_preparation_interview(preparation_id):
 
     profile_context = _build_profile_context(user)
     preparation_topics = _build_preparation_topics(preparation.id, user.id)
+    question_plan = _build_interview_plan(profile_context, preparation_topics)
 
-    payload = {
-        "profile": profile_context,
-        "roadmap_topics": preparation_topics,
-        "history": [],
-        "last_answer": "",
-        "last_score": None,
-    }
+    payload = _build_interview_question_payload(
+        profile_context=profile_context,
+        roadmap_topics=preparation_topics,
+        history=[],
+        last_answer="",
+        last_score=None,
+        question_order=2,
+        question_plan=question_plan,
+    )
 
-
-    question_data = generate_interview_question(payload)
-    if question_data.get("error"):
-        flash("Unable to start interview. Please try again.")
-        return redirect(url_for('view_preparation', preparation_id=preparation.id))
-
-    question_text = question_data.get("question") or "Summarize a key topic from this preparation."
-    rubric = question_data.get("rubric") or ["Clear explanation", "Correct terminology", "Relevant example"]
+    question_text = "Introduce yourself and briefly summarize your learning journey so far."
+    rubric = [
+        "Clear and structured introduction",
+        "Relevant background highlights",
+        "Confident and concise delivery",
+    ]
 
     interview_session = InterviewSession(
         user_id=user.id,
         roadmap_id=None,
         preparation_id=preparation.id,
-        max_questions=INTERVIEW_MAX_QUESTIONS
+        max_questions=question_plan["total_questions"]
     )
     db.session.add(interview_session)
     db.session.commit()
@@ -1240,8 +1286,8 @@ def start_preparation_interview(preparation_id):
         session_id=interview_session.id,
         question_text=question_text,
         question_order=1,
-        difficulty=question_data.get("difficulty"),
-        focus=question_data.get("focus"),
+        difficulty="easy",
+        focus="general",
         rubric=rubric
     )
     db.session.add(question)
@@ -1407,15 +1453,19 @@ def advance_interview(session_id):
         roadmap_topics = _build_preparation_topics(interview_session_obj.preparation_id, user.id)
     else:
         roadmap_topics = _build_roadmap_topics(interview_session_obj.roadmap_id)
+    question_plan = _build_interview_plan(profile_context, roadmap_topics)
     history = _build_question_history(interview_session_obj)
+    next_order = interview_session_obj.current_question_order + 1
 
-    payload = {
-        "profile": profile_context,
-        "roadmap_topics": roadmap_topics,
-        "history": history,
-        "last_answer": last_answer_summary,
-        "last_score": best_response.answer_score,
-    }
+    payload = _build_interview_question_payload(
+        profile_context=profile_context,
+        roadmap_topics=roadmap_topics,
+        history=history,
+        last_answer=last_answer_summary,
+        last_score=best_response.answer_score,
+        question_order=next_order,
+        question_plan=question_plan,
+    )
 
     _log_interview_payload(payload, interview_session_obj.id, f"advance_{interview_session_obj.current_question_order}")
 
@@ -1423,16 +1473,22 @@ def advance_interview(session_id):
     if question_data.get("error"):
         return jsonify({'error': 'Unable to generate next question'}), 500
 
-    question_text = question_data.get("question") or "Explain a key concept from this roadmap."
+    next_focus = _focus_for_question_order(next_order, question_plan)
+    fallback_questions = {
+        "roadmap": "Explain one important roadmap topic and how you would apply it in practice.",
+        "project": "Describe one of your projects and the key technical choices you made.",
+        "experience": "Share a challenge from your experience and how you solved it.",
+    }
+
+    question_text = question_data.get("question") or fallback_questions.get(next_focus, "Explain a key concept from your preparation.")
     rubric = question_data.get("rubric") or ["Clear explanation", "Correct terminology", "Relevant example"]
-    next_order = interview_session_obj.current_question_order + 1
 
     next_question = InterviewQuestion(
         session_id=interview_session_obj.id,
         question_text=question_text,
         question_order=next_order,
         difficulty=question_data.get("difficulty"),
-        focus=question_data.get("focus"),
+        focus=question_data.get("focus") or next_focus,
         rubric=rubric
     )
 
