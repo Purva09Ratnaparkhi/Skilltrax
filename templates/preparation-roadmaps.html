@@ -1,96 +1,125 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SkillTrax - Preparation Roadmaps</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-</head>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='styles.css') }}"
+    />
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Icons"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+    />
+  </head>
 
-<body>
+  <body>
     <div class="home-container">
-        <header>
-            <nav>
-                <div class="logo">SkillTrax</div>
-                <div class="nav-links">
-                    <a href="{{ url_for('dashboard') }}">Dashboard</a>
-                    <a href="{{ url_for('create_roadmap') }}">Learn a skill</a>
-                    <a href="{{ url_for('syllabus') }}">
-                        <i class="fas fa-crown"></i> JD upload
-                    </a>
-                    <a href="{{ url_for('profile') }}">Profile</a>
+      <header>
+        <nav>
+          <div class="logo">SkillTrax</div>
+          <div class="nav-links">
+            <a href="{{ url_for('dashboard') }}">Dashboard</a>
+            <a href="{{ url_for('create_roadmap') }}">Learn a skill</a>
+            <a href="{{ url_for('syllabus') }}">
+              <i class="fas fa-crown"></i> JD upload
+            </a>
+            <a href="{{ url_for('profile') }}">Profile</a>
+          </div>
+          <div class="user-menu">
+            <span>Welcome, {{ user.name }}</span>
+            <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+          </div>
+        </nav>
+      </header>
+
+      <main class="main-content">
+        <div class="dashboard-container">
+          <h1>{{ preparation.name }}</h1>
+          <p>Roadmaps generated for this preparation.</p>
+
+          {% if all_completed %}
+          <a
+            class="interview-btn"
+            href="{{ url_for('start_preparation_interview', preparation_id=preparation.id) }}"
+          >
+            <span class="material-icons">record_voice_over</span>
+            Start Preparation Interview
+          </a>
+          {% endif %} {% if completed_interview %}
+          <a
+            class="interview-btn secondary-btn"
+            style="margin-left: 10px"
+            href="{{ url_for('interview_summary', session_id=completed_interview.id) }}"
+          >
+            <span class="material-icons">history</span>
+            View Previous Attempt Results
+          </a>
+          {% endif %} {% if not all_completed %}
+          <p class="interview-locked">
+            Complete all roadmaps to unlock the interview.
+          </p>
+          {% endif %}
+
+          <div class="roadmaps-grid">
+            {% if roadmaps %} {% for roadmap in roadmaps %}
+            <div
+              class="roadmap-card"
+              data-category="{{ roadmap.category.lower() }}"
+              data-title="{{ roadmap.title.lower() }}"
+              data-id="{{ roadmap.id }}"
+            >
+              <div class="roadmap-tag">{{ roadmap.category }}</div>
+              <h3>{{ roadmap.title }}</h3>
+              <p>{{ roadmap.description }}</p>
+              <div class="roadmap-footer">
+                <div class="progress-info">
+                  <span class="material-icons progress-icon">check_circle</span>
+                  {{ roadmap.progress }}% Complete
                 </div>
-                <div class="user-menu">
-                    <span>Welcome, {{ user.name }}</span>
-                    <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
-                </div>
-            </nav>
-        </header>
-
-        <main class="main-content">
-            <div class="dashboard-container">
-                <h1>{{ preparation.name }}</h1>
-                <p>Roadmaps generated for this preparation.</p>
-
-                {% if all_completed %}
-                <a class="interview-btn" href="{{ url_for('start_preparation_interview', preparation_id=preparation.id) }}">
-                    <span class="material-icons">record_voice_over</span>
-                    Start Preparation Interview
-                </a>
-                {% else %}
-                <p class="interview-locked">Complete all roadmaps to unlock the interview.</p>
-                {% endif %}
-
-                <div class="roadmaps-grid">
-                    {% if roadmaps %}
-                    {% for roadmap in roadmaps %}
-                    <div class="roadmap-card" data-category="{{ roadmap.category.lower() }}"
-                        data-title="{{ roadmap.title.lower() }}" data-id="{{ roadmap.id }}">
-                        <div class="roadmap-tag">{{ roadmap.category }}</div>
-                        <h3>{{ roadmap.title }}</h3>
-                        <p>{{ roadmap.description }}</p>
-                        <div class="roadmap-footer">
-                            <div class="progress-info">
-                                <span class="material-icons progress-icon">check_circle</span>
-                                {{ roadmap.progress }}% Complete
-                            </div>
-                            <span class="material-icons">chevron_right</span>
-                        </div>
-                        <div class="creation-date">Created {{ roadmap.created_at.strftime('%d %b %Y') }}</div>
-                    </div>
-                    {% endfor %}
-                    {% else %}
-                    <p>No roadmaps found for this preparation yet.</p>
-                    {% endif %}
-                </div>
+                <span class="material-icons">chevron_right</span>
+              </div>
+              <div class="creation-date">
+                Created {{ roadmap.created_at.strftime('%d %b %Y') }}
+              </div>
             </div>
-        </main>
+            {% endfor %} {% else %}
+            <p>No roadmaps found for this preparation yet.</p>
+            {% endif %}
+          </div>
+        </div>
+      </main>
 
-        <footer class="footer">
-            <div class="footer-left">
-                <span class="material-icons">school</span>
-                SkillTrax
-            </div>
-            <div class="footer-right">
-                <a href="#">About</a>
-                <a href="#">Privacy</a>
-                <a href="#">Terms</a>
-                <a href="#">Contact</a>
-            </div>
-        </footer>
+      <footer class="footer">
+        <div class="footer-left">
+          <span class="material-icons">school</span>
+          SkillTrax
+        </div>
+        <div class="footer-right">
+          <a href="#">About</a>
+          <a href="#">Privacy</a>
+          <a href="#">Terms</a>
+          <a href="#">Contact</a>
+        </div>
+      </footer>
     </div>
 
     <script>
-        document.querySelectorAll('.roadmap-card').forEach(card => {
-            card.addEventListener('click', function () {
-                const roadmapId = this.getAttribute('data-id');
-                window.location.href = "{{ url_for('view_roadmap', roadmap_id=0) }}".replace('0', roadmapId);
-            });
+      document.querySelectorAll(".roadmap-card").forEach((card) => {
+        card.addEventListener("click", function () {
+          const roadmapId = this.getAttribute("data-id");
+          window.location.href =
+            "{{ url_for('view_roadmap', roadmap_id=0) }}".replace(
+              "0",
+              roadmapId,
+            );
         });
+      });
     </script>
-</body>
-
+  </body>
 </html>

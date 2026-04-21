@@ -1139,14 +1139,23 @@ def view_preparation(preparation_id):
         user_id=user.id
     ).all()
 
+
     all_completed = bool(roadmaps) and all(roadmap.progress == 100 for roadmap in roadmaps)
+
+    # Check if a completed interview exists for this preparation and user
+    completed_interview = InterviewSession.query.filter_by(
+        user_id=user.id,
+        preparation_id=preparation.id,
+        status='completed'
+    ).order_by(InterviewSession.completed_at.desc()).first()
 
     return render_template(
         'preparation-roadmaps.html',
         user=user,
         preparation=preparation,
         roadmaps=roadmaps,
-        all_completed=all_completed
+        all_completed=all_completed,
+        completed_interview=completed_interview
     )
 
 
@@ -1604,15 +1613,40 @@ def interview_summary(session_id):
         flash("You don't have permission to view this interview.")
         return redirect(url_for('dashboard'))
 
+
     questions = InterviewQuestion.query.filter_by(session_id=interview_session_obj.id).order_by(InterviewQuestion.question_order).all()
     question_results = []
     for question in questions:
         responses = InterviewResponse.query.filter_by(question_id=question.id).all()
         best_response = max(responses, key=lambda resp: resp.answer_score) if responses else None
+        # Extract feedback and behavioral suggestions
+        feedback = best_response.feedback if best_response and best_response.feedback else {}
+        feedback_text = feedback.get("feedback", "No feedback available.")
+        key_points_covered = feedback.get("key_points_covered", [])
+        missing_points = feedback.get("missing_points", [])
+        transcript_error = feedback.get("transcript_error", None)
+        # Behavioral suggestions
+        behavior_scores = best_response.behavior_scores if best_response and best_response.behavior_scores else {}
+        suggestions = []
+        if behavior_scores:
+            if behavior_scores.get("energy_score", 50) < 60:
+                suggestions.append("Try to speak with more energy and enthusiasm.")
+            if behavior_scores.get("pace_score", 50) < 60:
+                suggestions.append("Try to maintain a steady, moderate speaking pace.")
+            if behavior_scores.get("expression_score", 50) < 60:
+                suggestions.append("Try to use more facial expressions and smile during your answer.")
+        if not suggestions:
+            suggestions.append("Good behavioral delivery! Keep it up.")
+
         question_results.append({
             "question": question.question_text,
             "score": best_response.answer_score if best_response else 0,
-            "attempts": len(responses)
+            "attempts": len(responses),
+            "feedback": feedback_text,
+            "key_points_covered": key_points_covered,
+            "missing_points": missing_points,
+            "transcript_error": transcript_error,
+            "behavior_suggestions": suggestions
         })
 
     behavior_summary = interview_session_obj.behavior_summary or {}
