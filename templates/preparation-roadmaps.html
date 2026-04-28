@@ -88,6 +88,22 @@
                 Created {{ roadmap.created_at.strftime('%d %b %Y') }}
               </div>
             </div>
+            {% endfor %} {% for i in range(roadmaps|length,
+            expected_roadmaps_count) %}
+            <div class="roadmap-card placeholder">
+              <div class="roadmap-tag">Generating...</div>
+              <h3>Generating roadmap...</h3>
+              <p>This roadmap is still being generated. Please wait.</p>
+              <div class="roadmap-footer">
+                <div class="progress-info">
+                  <span class="material-icons progress-icon"
+                    >hourglass_empty</span
+                  >
+                  In Progress
+                </div>
+              </div>
+              <div class="creation-date">...</div>
+            </div>
             {% endfor %} {% else %}
             <p>No roadmaps found for this preparation yet.</p>
             {% endif %}

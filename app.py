@@ -81,6 +81,7 @@ class Preparation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(150), nullable=False)
     job_role = db.Column(db.String(150), nullable=True)
+    expected_roadmaps_count = db.Column(db.Integer, nullable=True)
 
     def __repr__(self):
         return f'<Preparation {self.name}>'
@@ -793,13 +794,21 @@ def view_roadmap(roadmap_id):
         add_completed_roadmap_skill(user.id, roadmap)
     db.session.commit()
     
+    # Find the most recent completed interview for this roadmap and user
+    completed_interview = InterviewSession.query.filter_by(
+        user_id=user.id,
+        roadmap_id=roadmap.id,
+        status='completed'
+    ).order_by(InterviewSession.completed_at.desc()).first()
+
     return render_template(
         'view-roadmap1.html',
         user=user,
         roadmap=roadmap,
         steps=steps,
         progress=progress_percentage,
-        quiz_scores=quiz_scores 
+        quiz_scores=quiz_scores,
+        completed_interview=completed_interview
     )
 
 @app.route('/update_step/<int:step_id>', methods=['POST'])
@@ -1022,18 +1031,16 @@ def upload_syllabus():
         return redirect(url_for('syllabus'))
     
     if file and allowed_file(file.filename):
-        # Save the uploaded file temporarily
+        import threading
         temp_dir = tempfile.mkdtemp()
         temp_path = os.path.join(temp_dir, file.filename)
         file.save(temp_path)
-        
         try:
             skills = Skills.query.filter_by(user_id=user.id).all()
             skills_payload = [
                 {"skill_name": skill.skill_name, "level": skill.level}
                 for skill in skills
             ]
-
             analysis_state = run_skill_gap_graph(
                 job_description_path=temp_path,
                 skills=skills_payload,
@@ -1042,32 +1049,28 @@ def upload_syllabus():
             if analysis_state.get("error"):
                 flash(analysis_state.get("error"))
                 return redirect(url_for('syllabus'))
-
             analysis_result = analysis_state.get('skill_gap_response', {})
             subjects = analysis_result.get('subjects', [])
             job_role = analysis_result.get('job_role', "unknown job role")
             if not subjects:
                 flash("No skill gaps identified for this job description.")
                 return redirect(url_for('syllabus'))
-
             prep_name = f"{os.path.splitext(file.filename)[0]}- {job_role}"
-            preparation = Preparation(name=prep_name,job_role= job_role)
+            preparation = Preparation(name=prep_name, job_role=job_role, expected_roadmaps_count=len(subjects))
             db.session.add(preparation)
             db.session.commit()
-
-            for subject in subjects:
+            # Generate the first roadmap synchronously
+            def create_roadmap(subject, preparation_id, user_id):
                 roadmap_state = run_roadmap_graph(
                     subject_area=subject.get('subject area', 'Skill Preparation'),
                     knowledge_level=subject.get('current knowledge level', 'Beginner'),
                     learning_goals=subject.get('learning goals', 'Interview Preparation'),
                     custom_requirement=subject.get('custom requirement', ''),
-                    thread_id=f"prep-{user.id}-{preparation.id}-{subject.get('subject area', 'Skill Preparation')}"
+                    thread_id=f"prep-{user_id}-{preparation_id}-{subject.get('subject area', 'Skill Preparation')}"
                 )
                 roadmap_response = roadmap_state.get("roadmap_response")
-
                 if roadmap_state.get("error") or not roadmap_response or 'roadmap' not in roadmap_response:
-                    continue
-
+                    return
                 new_roadmap = Roadmap(
                     title=roadmap_response['subject'],
                     description=roadmap_response['subject_desc'],
@@ -1077,17 +1080,14 @@ def upload_syllabus():
                     custom_requirements=subject.get('custom requirement', ''),
                     target_completion=None,
                     progress=0,
-                    preparation_id=preparation.id,
-                    user_id=user.id,
+                    preparation_id=preparation_id,
+                    user_id=user_id,
                 )
-
                 db.session.add(new_roadmap)
                 db.session.commit()
-
                 steps = roadmap_response['roadmap']
                 for i, step in enumerate(steps):
                     status = 'in_progress' if i == 0 else 'locked'
-
                     roadmap_step = RoadmapStep(
                         roadmap_id=new_roadmap.id,
                         title=step['title'],
@@ -1099,24 +1099,29 @@ def upload_syllabus():
                         status=status
                     )
                     db.session.add(roadmap_step)
-
                 db.session.commit()
-
-            flash("Preparation roadmaps created successfully!")
-            return redirect(url_for('view_preparation', preparation_id=preparation.id))
+            # Synchronously create the first roadmap
+            if subjects:
+                create_roadmap(subjects[0], preparation.id, user.id)
+            # Start background thread for the rest
+            def generate_remaining_roadmaps(subjects, preparation_id, user_id):
+                with app.app_context():
+                    for subject in subjects[1:]:
+                        create_roadmap(subject, preparation_id, user_id)
+            if len(subjects) > 1:
+                threading.Thread(target=generate_remaining_roadmaps, args=(subjects, preparation.id, user.id), daemon=True).start()
+            # Redirect immediately to preparation page, pass expected_roadmaps_count for placeholders
+            return redirect(url_for('view_preparation', preparation_id=preparation.id, expected_roadmaps_count=len(subjects)))
         except Exception as e:
-            # Log the error and flash a message
             print(f"Error processing syllabus: {str(e)}")
             flash('Error processing the syllabus. Please try again.')
-            return redirect(url_for('syllabus')) 
+            return redirect(url_for('syllabus'))
         finally:
-            # Clean up temporary file
             try:
                 os.remove(temp_path)
                 os.rmdir(temp_dir)
             except Exception as cleanup_error:
                 print(f"Error cleaning up temp file: {cleanup_error}")
-    
     flash('Invalid file type. Please upload a PDF, DOCX, or TXT file.')
     return redirect(url_for('syllabus'))
 
@@ -1138,24 +1143,22 @@ def view_preparation(preparation_id):
         preparation_id=preparation.id,
         user_id=user.id
     ).all()
-
-
+    # Always use expected_roadmaps_count from Preparation model for placeholders
+    expected_roadmaps_count = preparation.expected_roadmaps_count or len(roadmaps)
     all_completed = bool(roadmaps) and all(roadmap.progress == 100 for roadmap in roadmaps)
-
-    # Check if a completed interview exists for this preparation and user
     completed_interview = InterviewSession.query.filter_by(
         user_id=user.id,
         preparation_id=preparation.id,
         status='completed'
     ).order_by(InterviewSession.completed_at.desc()).first()
-
     return render_template(
         'preparation-roadmaps.html',
         user=user,
         preparation=preparation,
         roadmaps=roadmaps,
         all_completed=all_completed,
-        completed_interview=completed_interview
+        completed_interview=completed_interview,
+        expected_roadmaps_count=expected_roadmaps_count
     )
 
 
@@ -1649,8 +1652,37 @@ def interview_summary(session_id):
             "behavior_suggestions": suggestions
         })
 
-    behavior_summary = interview_session_obj.behavior_summary or {}
-    answer_summary = interview_session_obj.answer_summary or {}
+    # Recalculate averages from all responses for this session
+    all_scores = []
+    all_energy = []
+    all_pace = []
+    all_expression = []
+    all_behavior = []
+    for question in questions:
+        responses = InterviewResponse.query.filter_by(question_id=question.id).all()
+        for resp in responses:
+            all_scores.append(resp.answer_score)
+            beh = resp.behavior_scores or {}
+            all_energy.append(beh.get("energy_score", 0))
+            all_pace.append(beh.get("pace_score", 0))
+            all_expression.append(beh.get("expression_score", 0))
+            all_behavior.append(beh.get("behavior_score", 0))
+
+    avg_score = sum(all_scores) / len(all_scores) if all_scores else 0
+    avg_energy = sum(all_energy) / len(all_energy) if all_energy else 0
+    avg_pace = sum(all_pace) / len(all_pace) if all_pace else 0
+    avg_expression = sum(all_expression) / len(all_expression) if all_expression else 0
+    avg_behavior = sum(all_behavior) / len(all_behavior) if all_behavior else 0
+
+    behavior_summary = {
+        "avg_energy": avg_energy,
+        "avg_pace": avg_pace,
+        "avg_expression": avg_expression,
+        "avg_behavior_score": avg_behavior
+    }
+    answer_summary = {
+        "avg_score": avg_score
+    }
 
     return render_template(
         'interview_summary.html',

@@ -198,7 +198,9 @@
         text-decoration: none;
         font-size: 14px;
         font-weight: 600;
-        transition: transform 0.2s ease, background-color 0.2s ease;
+        transition:
+          transform 0.2s ease,
+          background-color 0.2s ease;
       }
 
       .interview-btn:hover {
@@ -440,10 +442,23 @@
             <span class="progress-text">Progress: {{ progress }}%</span>
           </div>
 
-          <a class="interview-btn" href="{{ url_for('start_interview', roadmap_id=roadmap.id) }}">
+          <a
+            class="interview-btn"
+            href="{{ url_for('start_interview', roadmap_id=roadmap.id) }}"
+          >
             <span class="material-icons">record_voice_over</span>
             Start Interview
           </a>
+          {% if completed_interview %}
+          <a
+            class="interview-btn secondary-btn"
+            style="margin-left: 10px"
+            href="{{ url_for('interview_summary', session_id=completed_interview.id) }}"
+          >
+            <span class="material-icons">history</span>
+            View Previous Attempt Results
+          </a>
+          {% endif %}
         </div>
 
         <div class="roadmap-steps">
