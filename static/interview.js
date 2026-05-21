@@ -5,19 +5,23 @@ const recordedPreview = document.getElementById("recordedPreview");
 const startButton = document.getElementById("startRecording");
 const stopButton = document.getElementById("stopRecording");
 const submitButton = document.getElementById("submitAnswer");
-const retryButton = document.getElementById("retryAnswer");
-const nextButton = document.getElementById("nextQuestion");
+const skipButton = document.getElementById("skipQuestion");
 const statusMessage = document.getElementById("statusMessage");
+const loadingIndicator = document.getElementById("loadingIndicator");
 const questionText = document.getElementById("questionText");
 const questionIndex = document.getElementById("questionIndex");
 const questionTotal = document.getElementById("questionTotal");
 const attemptsUsedEl = document.getElementById("attemptsUsed");
+const timerDisplay = document.getElementById("timerDisplay");
+const timerValue = document.getElementById("timerValue");
 
 let mediaStream;
 let mediaRecorder;
 let recordedChunks = [];
 let recordedBlob = null;
 let recordingTimer = null;
+let timerInterval = null;
+let timeRemaining = null;
 
 const setStatus = (message, isError = false) => {
     statusMessage.textContent = message;
@@ -27,8 +31,7 @@ const setStatus = (message, isError = false) => {
 const updateAttempts = (attemptsUsed) => {
     attemptsUsedEl.textContent = attemptsUsed;
     const attemptsLeft = config.maxAttempts - attemptsUsed;
-    retryButton.disabled = attemptsLeft <= 0;
-    nextButton.disabled = attemptsUsed === 0;
+    startButton.disabled = attemptsLeft <= 0;
 };
 
 const resetRecordingState = () => {
@@ -36,6 +39,37 @@ const resetRecordingState = () => {
     recordedChunks = [];
     recordedPreview.src = "";
     submitButton.disabled = true;
+};
+
+const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+};
+
+const startTimerDisplay = (totalSeconds) => {
+    timeRemaining = totalSeconds;
+    timerDisplay.classList.remove("hidden");
+    timerValue.textContent = formatTime(timeRemaining);
+    
+    timerInterval = setInterval(() => {
+        timeRemaining--;
+        timerValue.textContent = formatTime(timeRemaining);
+        
+        if (timeRemaining <= 0) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
+    }, 1000);
+};
+
+const stopTimerDisplay = () => {
+    if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+    }
+    timerDisplay.classList.add("hidden");
+    timeRemaining = null;
 };
 
 const stopRecording = () => {
@@ -46,6 +80,7 @@ const stopRecording = () => {
     stopButton.disabled = true;
     startButton.disabled = false;
     clearTimeout(recordingTimer);
+    stopTimerDisplay();
 };
 
 const initMedia = async () => {
@@ -76,14 +111,35 @@ startButton.addEventListener("click", () => {
     mediaRecorder.onstop = () => {
         recordedBlob = new Blob(recordedChunks, { type: "video/webm" });
         recordedPreview.src = URL.createObjectURL(recordedBlob);
-        submitButton.disabled = false;
-        retryButton.disabled = true;
-        setStatus("Recording ready. Preview and submit when ready.");
+        
+        // Check video duration
+        recordedPreview.onloadedmetadata = () => {
+            const duration = recordedPreview.duration;
+            if (duration > config.maxSeconds) {
+                setStatus(`Recording too long (${Math.ceil(duration)}s > ${config.maxSeconds}s). Please re-record.`, true);
+                submitButton.disabled = true;
+                recordedBlob = null;
+                recordedChunks = [];
+            } else {
+                submitButton.disabled = false;
+                setStatus(`Recording ready (${Math.ceil(duration)}s). Submit when ready.`);
+            }
+        };
+        
+        // Increment attempts when recording completes
+        config.attemptsUsed += 1;
+        updateAttempts(config.attemptsUsed);
+        
+        if (config.attemptsUsed >= config.maxAttempts) {
+            startButton.disabled = true;
+            setStatus("Maximum attempts reached. Please submit your answer now.");
+        }
     };
 
     mediaRecorder.start();
     startButton.disabled = true;
     stopButton.disabled = false;
+    startTimerDisplay(config.maxSeconds);
 
     recordingTimer = setTimeout(() => {
         stopRecording();
@@ -95,10 +151,7 @@ stopButton.addEventListener("click", () => {
     stopRecording();
 });
 
-retryButton.addEventListener("click", () => {
-    resetRecordingState();
-    setStatus("You can record again.");
-});
+
 
 submitButton.addEventListener("click", async () => {
     if (!recordedBlob) {
@@ -107,7 +160,8 @@ submitButton.addEventListener("click", async () => {
     }
 
     submitButton.disabled = true;
-    setStatus("Submitting answer...");
+    skipButton.disabled = true;
+    loadingIndicator.classList.remove("hidden");
 
     const formData = new FormData();
     formData.append("video", recordedBlob, "answer.webm");
@@ -123,27 +177,52 @@ submitButton.addEventListener("click", async () => {
             throw new Error(result.error || "Submission failed");
         }
 
-        config.attemptsUsed = result.attempts_used;
-        updateAttempts(config.attemptsUsed);
-        setStatus("Answer saved. You can record again or continue.");
-        retryButton.disabled = result.attempts_left <= 0;
-        nextButton.disabled = false;
+        setStatus("Answer submitted successfully. Loading next question...");
+        
+        // Auto-advance to next question after successful submission
+        const advanceResponse = await fetch(`/api/interview/${config.sessionId}/advance`, { method: "POST" });
+        const advanceResult = await advanceResponse.json();
+        
+        loadingIndicator.classList.add("hidden");
+        
+        if (!advanceResponse.ok) {
+            throw new Error(advanceResult.error || "Unable to advance");
+        }
+
+        if (advanceResult.status === "completed") {
+            window.location.href = advanceResult.summary_url;
+            return;
+        }
+
+        // Load new question
+        questionText.textContent = advanceResult.question;
+        questionIndex.textContent = advanceResult.order;
+        questionTotal.textContent = advanceResult.max_questions;
+        config.questionOrder = advanceResult.order;
+        config.attemptsUsed = 0;
+        updateAttempts(0);
+        resetRecordingState();
+        setStatus("New question loaded.");
+        submitButton.disabled = false;
+        skipButton.disabled = false;
     } catch (error) {
         submitButton.disabled = false;
+        skipButton.disabled = false;
+        loadingIndicator.classList.add("hidden");
         setStatus(error.message, true);
     }
 });
 
-nextButton.addEventListener("click", async () => {
-    nextButton.disabled = true;
-    setStatus("Loading next question...");
+skipButton.addEventListener("click", async () => {
+    skipButton.disabled = true;
+    setStatus("Skipping question...");
 
     try {
-        const response = await fetch(`/api/interview/${config.sessionId}/advance`, { method: "POST" });
+        const response = await fetch(`/api/interview/${config.sessionId}/skip`, { method: "POST" });
         const result = await response.json();
 
         if (!response.ok) {
-            throw new Error(result.error || "Unable to advance");
+            throw new Error(result.error || "Unable to skip question");
         }
 
         if (result.status === "completed") {
@@ -158,9 +237,10 @@ nextButton.addEventListener("click", async () => {
         config.attemptsUsed = 0;
         updateAttempts(0);
         resetRecordingState();
-        setStatus("New question loaded.");
+        setStatus("Question skipped. New question loaded.");
+        skipButton.disabled = false;
     } catch (error) {
-        nextButton.disabled = false;
+        skipButton.disabled = false;
         setStatus(error.message, true);
     }
 });

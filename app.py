@@ -1483,6 +1483,90 @@ def submit_interview_answer(session_id):
     })
 
 
+@app.route('/api/interview/<int:session_id>/skip', methods=['POST'])
+def skip_interview_question(session_id):
+    if 'user_id' not in session:
+        return jsonify({'error': 'User not logged in'}), 401
+
+    interview_session_obj = InterviewSession.query.get_or_404(session_id)
+    if interview_session_obj.user_id != session['user_id']:
+        return jsonify({'error': 'Not authorized'}), 403
+
+    if interview_session_obj.status != 'in_progress':
+        return jsonify({'error': 'Interview already completed'}), 400
+
+    # If we've reached the max questions, end the interview
+    if interview_session_obj.current_question_order >= interview_session_obj.max_questions:
+        interview_session_obj.status = 'completed'
+        interview_session_obj.completed_at = db.func.current_timestamp()
+        db.session.commit()
+        return jsonify({
+            'status': 'completed',
+            'summary_url': url_for('interview_summary', session_id=interview_session_obj.id)
+        })
+
+    # Move to next question
+    user = User.query.get(interview_session_obj.user_id)
+    profile_context = _build_profile_context(user)
+    if interview_session_obj.preparation_id:
+        roadmap_topics = _build_preparation_topics(interview_session_obj.preparation_id, user.id)
+    else:
+        roadmap_topics = _build_roadmap_topics(interview_session_obj.roadmap_id)
+    question_plan = _build_interview_plan(profile_context, roadmap_topics)
+    history = _build_question_history(interview_session_obj)
+    next_order = interview_session_obj.current_question_order + 1
+    generation_guidance = _build_generation_guidance(history)
+
+    payload = _build_interview_question_payload(
+        profile_context=profile_context,
+        roadmap_topics=roadmap_topics,
+        history=history,
+        last_answer="Question skipped by user.",
+        last_score=None,
+        question_order=next_order,
+        question_plan=question_plan,
+        generation_guidance=generation_guidance,
+    )
+
+    _log_interview_payload(payload, interview_session_obj.id, f"skip_{interview_session_obj.current_question_order}")
+
+    question_data = generate_interview_question(payload)
+    if question_data.get("error"):
+        return jsonify({'error': 'Unable to generate next question'}), 500
+
+    next_focus = _focus_for_question_order(next_order, question_plan)
+    fallback_questions = {
+        "roadmap": "Explain one important roadmap topic and how you would apply it in practice.",
+        "project": "Describe one of your projects and the key technical choices you made.",
+        "experience": "Share a challenge from your experience and how you solved it.",
+    }
+
+    question_text = question_data.get("question") or fallback_questions.get(next_focus, "Explain a key concept from your preparation.")
+
+    rubric = question_data.get("rubric") or ["Clear explanation", "Correct terminology", "Relevant example"]
+
+    next_question = InterviewQuestion(
+        session_id=interview_session_obj.id,
+        question_text=question_text,
+        question_order=next_order,
+        difficulty=question_data.get("difficulty"),
+        focus=question_data.get("focus") or next_focus,
+        rubric=rubric
+    )
+
+    interview_session_obj.current_question_order = next_order
+    db.session.add(next_question)
+    db.session.commit()
+
+    return jsonify({
+        'status': 'next',
+        'question': question_text,
+        'order': next_order,
+        'max_questions': interview_session_obj.max_questions,
+        'attempts_used': 0
+    })
+
+
 @app.route('/api/interview/<int:session_id>/advance', methods=['POST'])
 def advance_interview(session_id):
     if 'user_id' not in session:
@@ -1629,17 +1713,22 @@ def interview_summary(session_id):
         missing_points = feedback.get("missing_points", [])
         transcript_error = feedback.get("transcript_error", None)
         # Behavioral suggestions
-        behavior_scores = best_response.behavior_scores if best_response and best_response.behavior_scores else {}
         suggestions = []
-        if behavior_scores:
-            if behavior_scores.get("energy_score", 50) < 60:
-                suggestions.append("Try to speak with more energy and enthusiasm.")
-            if behavior_scores.get("pace_score", 50) < 60:
-                suggestions.append("Try to maintain a steady, moderate speaking pace.")
-            if behavior_scores.get("expression_score", 50) < 60:
-                suggestions.append("Try to use more facial expressions and smile during your answer.")
-        if not suggestions:
-            suggestions.append("Good behavioral delivery! Keep it up.")
+        if best_response:
+            # Question was answered - generate behavioral suggestions
+            behavior_scores = best_response.behavior_scores if best_response.behavior_scores else {}
+            if behavior_scores:
+                if behavior_scores.get("energy_score", 50) < 60:
+                    suggestions.append("Try to speak with more energy and enthusiasm.")
+                if behavior_scores.get("pace_score", 50) < 60:
+                    suggestions.append("Try to maintain a steady, moderate speaking pace.")
+                if behavior_scores.get("expression_score", 50) < 60:
+                    suggestions.append("Try to use more facial expressions and smile during your answer.")
+            if not suggestions:
+                suggestions.append("Good behavioral delivery! Keep it up.")
+        else:
+            # Question was skipped - no summary available
+            suggestions.append("No summary available (Question was skipped).")
 
         question_results.append({
             "question": question.question_text,
