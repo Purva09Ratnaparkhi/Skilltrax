@@ -1,129 +1,135 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SkillTrax - Dashboard</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-</head>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='styles.css') }}"
+    />
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Icons"
+      rel="stylesheet"
+    />
+  </head>
 
-<body>
+  <body>
     <div class="home-container">
-        <!-- Navigation Bar -->
-        <nav class="navbar">
-            <div class="nav-left">
-                <a href="{{ url_for('dashboard') }}" class="logo">
-                    <span class="material-icons">school</span>
-                    SkillTrax
-                </a>
-            </div>
-            <div class="nav-middle">
-                <a href="{{ url_for('dashboard') }}" class="nav-link active">Dashboard</a>
-                <a href="#" class="nav-link">My Courses</a>
-                <a href="#" class="nav-link">
-                    <span class="material-icons">emoji_events</span>
-                    Syllabus Pro
-                </a>
-                <a href="#" class="nav-link">Profile</a>
-            </div>
-            <div class="nav-right">
-                <button class="theme-toggle" onclick="toggleTheme()">
-                    <span class="material-icons" id="themeIcon">dark_mode</span>
-                </button>
-                <a href="{{ url_for('logout') }}" class="nav-link">
-                    <span class="material-icons">logout</span>
-                    Logout
-                </a>
-            </div>
-        </nav>
+      <!-- Navigation Bar -->
+      <nav class="navbar">
+        <div class="nav-left">
+          <a href="{{ url_for('dashboard') }}" class="logo">
+            <span class="material-icons">school</span>
+            SkillTrax
+          </a>
+        </div>
+        <div class="nav-middle">
+          <a href="{{ url_for('dashboard') }}" class="nav-link active"
+            >Dashboard</a
+          >
+          <a href="#" class="nav-link">My Courses</a>
+          <a href="#" class="nav-link">
+            <span class="material-icons">emoji_events</span>
+            Upload JD
+          </a>
+          <a href="#" class="nav-link">Profile</a>
+        </div>
+        <div class="nav-right">
+          <button class="theme-toggle" onclick="toggleTheme()">
+            <span class="material-icons" id="themeIcon">dark_mode</span>
+          </button>
+          <a href="{{ url_for('logout') }}" class="nav-link">
+            <span class="material-icons">logout</span>
+            Logout
+          </a>
+        </div>
+      </nav>
 
-        <!-- Main Content -->
-        <main class="main-content">
-            <div class="welcome-section">
-                <h1>Welcome, {{ user.name }}!</h1>
-                <p>Your personalized learning dashboard is here.</p>
-            </div>
+      <!-- Main Content -->
+      <main class="main-content">
+        <div class="welcome-section">
+          <h1>Welcome, {{ user.name }}!</h1>
+          <p>Your personalized learning dashboard is here.</p>
+        </div>
 
-            <div class="dashboard-stats">
-                <div class="stat-card">
-                    <h3>Courses Enrolled</h3>
-                    <p class="stat-number">0</p>
-                </div>
-                <div class="stat-card">
-                    <h3>Skills in Progress</h3>
-                    <p class="stat-number">0</p>
-                </div>
-                <div class="stat-card">
-                    <h3>Completed Paths</h3>
-                    <p class="stat-number">0</p>
-                </div>
-            </div>
+        <div class="dashboard-stats">
+          <div class="stat-card">
+            <h3>Courses Enrolled</h3>
+            <p class="stat-number">0</p>
+          </div>
+          <div class="stat-card">
+            <h3>Skills in Progress</h3>
+            <p class="stat-number">0</p>
+          </div>
+          <div class="stat-card">
+            <h3>Completed Paths</h3>
+            <p class="stat-number">0</p>
+          </div>
+        </div>
 
-            <div class="roadmaps-grid">
-                <div class="roadmap-card">
-                    <div class="roadmap-tag">Mathematics</div>
-                    <h3>Calculus Mastery</h3>
-                    <p>Advanced calculus concepts for engineering students</p>
-                    <div class="roadmap-footer">
-                        <span class="material-icons">check_circle</span>
-                        75% Complete
-                    </div>
-                </div>
+        <div class="roadmaps-grid">
+          <div class="roadmap-card">
+            <div class="roadmap-tag">Mathematics</div>
+            <h3>Calculus Mastery</h3>
+            <p>Advanced calculus concepts for engineering students</p>
+            <div class="roadmap-footer">
+              <span class="material-icons">check_circle</span>
+              75% Complete
+            </div>
+          </div>
 
-                <div class="roadmap-card">
-                    <div class="roadmap-tag">Computer Science</div>
-                    <h3>Web Development</h3>
-                    <p>Full-stack development with modern technologies</p>
-                    <div class="roadmap-footer">
-                        <span class="material-icons">check_circle</span>
-                        45% Complete
-                    </div>
-                </div>
+          <div class="roadmap-card">
+            <div class="roadmap-tag">Computer Science</div>
+            <h3>Web Development</h3>
+            <p>Full-stack development with modern technologies</p>
+            <div class="roadmap-footer">
+              <span class="material-icons">check_circle</span>
+              45% Complete
             </div>
-        </main>
+          </div>
+        </div>
+      </main>
 
-        <!-- Footer -->
-        <footer class="footer">
-            <div class="footer-left">
-                <span class="material-icons">school</span>
-                SkillTrax
-            </div>
-            <div class="footer-right">
-                <a href="#">About</a>
-                <a href="#">Privacy</a>
-                <a href="#">Terms</a>
-                <a href="#">Contact</a>
-            </div>
-        </footer>
+      <!-- Footer -->
+      <footer class="footer">
+        <div class="footer-left">
+          <span class="material-icons">school</span>
+          SkillTrax
+        </div>
+        <div class="footer-right">
+          <a href="#">About</a>
+          <a href="#">Privacy</a>
+          <a href="#">Terms</a>
+          <a href="#">Contact</a>
+        </div>
+      </footer>
     </div>
 
     <script>
-        function toggleTheme() {
-            const body = document.body;
-            const themeIcon = document.getElementById('themeIcon');
+      function toggleTheme() {
+        const body = document.body;
+        const themeIcon = document.getElementById("themeIcon");
 
-            if (body.classList.contains('dark-theme')) {
-                body.classList.remove('dark-theme');
-                themeIcon.textContent = 'dark_mode';
-                localStorage.setItem('theme', 'light');
-            } else {
-                body.classList.add('dark-theme');
-                themeIcon.textContent = 'light_mode';
-                localStorage.setItem('theme', 'dark');
-            }
+        if (body.classList.contains("dark-theme")) {
+          body.classList.remove("dark-theme");
+          themeIcon.textContent = "dark_mode";
+          localStorage.setItem("theme", "light");
+        } else {
+          body.classList.add("dark-theme");
+          themeIcon.textContent = "light_mode";
+          localStorage.setItem("theme", "dark");
         }
+      }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const savedTheme = localStorage.getItem('theme');
-            const themeIcon = document.getElementById('themeIcon');
-            if (savedTheme === 'dark') {
-                document.body.classList.add('dark-theme');
-                themeIcon.textContent = 'light_mode';
-            }
-        });
+      document.addEventListener("DOMContentLoaded", () => {
+        const savedTheme = localStorage.getItem("theme");
+        const themeIcon = document.getElementById("themeIcon");
+        if (savedTheme === "dark") {
+          document.body.classList.add("dark-theme");
+          themeIcon.textContent = "light_mode";
+        }
+      });
     </script>
-</body>
-
+  </body>
 </html>

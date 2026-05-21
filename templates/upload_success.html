@@ -1,133 +1,142 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SkillTrax - Upload Successful</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='styles.css') }}"
+    />
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Icons"
+      rel="stylesheet"
+    />
     <style>
-        body {
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-            margin: 0;
-        }
+      body {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        margin: 0;
+      }
 
-        .main-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex: 1;
-            width: 100%;
-            padding: 0;
-            margin: 0;
-        }
+      .main-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex: 1;
+        width: 100%;
+        padding: 0;
+        margin: 0;
+      }
 
-        .success-card {
-            background-color: #ffffff;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            width: 90%;
-            max-width: 600px;
-            text-align: center;
-            margin: 0 auto;
-        }
+      .success-card {
+        background-color: #ffffff;
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        width: 90%;
+        max-width: 600px;
+        text-align: center;
+        margin: 0 auto;
+      }
 
-        .success-icon {
-            color: #4CAF50;
-            font-size: 64px;
-            margin-bottom: 20px;
-        }
+      .success-icon {
+        color: #4caf50;
+        font-size: 64px;
+        margin-bottom: 20px;
+      }
 
-        .success-title {
-            font-size: 24px;
-            margin-bottom: 15px;
-            color: #333;
-        }
+      .success-title {
+        font-size: 24px;
+        margin-bottom: 15px;
+        color: #333;
+      }
 
-        .success-message {
-            font-size: 16px;
-            color: #666;
-            margin-bottom: 25px;
-        }
+      .success-message {
+        font-size: 16px;
+        color: #666;
+        margin-bottom: 25px;
+      }
 
-        .success-details {
-            background-color: #f9f9f9;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 25px;
-            text-align: left;
-        }
+      .success-details {
+        background-color: #f9f9f9;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 25px;
+        text-align: left;
+      }
 
-        .back-button {
-            background-color: #3498db;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 5px;
-            font-size: 16px;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
-        }
+      .back-button {
+        background-color: #3498db;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 5px;
+        font-size: 16px;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+      }
 
-        header, footer {
-            flex-shrink: 0;
-            width: 100%;
-        }
+      header,
+      footer {
+        flex-shrink: 0;
+        width: 100%;
+      }
     </style>
-</head>
+  </head>
 
-<body>
+  <body>
     <header>
-        <nav>
-            <div class="logo">SkillTrax</div>
-            <div class="nav-links">
-                <a href="{{ url_for('dashboard') }}">Dashboard</a>
-                <a href="{{ url_for('create_roadmap')}}">Create Roadmap</a>
-                <a href="#">Roadmaps</a>
-                <a href="{{ url_for('syllabus') }}" class="active">Syllabus</a>
-            </div>
-            <div class="user-menu">
-                <span>Welcome, {{ user.name }}</span>
-                <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
-            </div>
-        </nav>
+      <nav>
+        <div class="logo">SkillTrax</div>
+        <div class="nav-links">
+          <a href="{{ url_for('dashboard') }}">Dashboard</a>
+          <a href="{{ url_for('create_roadmap')}}">Create Roadmap</a>
+          <a href="#">Roadmaps</a>
+          <a href="{{ url_for('syllabus') }}" class="active">JD Upload</a>
+        </div>
+        <div class="user-menu">
+          <span>Welcome, {{ user.name }}</span>
+          <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+        </div>
+      </nav>
     </header>
 
     <div class="main-container">
-        <div class="success-card">
-            <div class="success-icon">
-                <i class="material-icons">check_circle</i>
-            </div>
-            <h1 class="success-title">Syllabus Successfully Uploaded!</h1>
-            <p class="success-message">Your syllabus PDF has been received and processed.</p>
-            
-            <div class="success-details">
-                <p><strong>File name:</strong> {{ filename }}</p>
-                <p><strong>File size:</strong> {{ filesize }}</p>
-                <p><strong>Upload time:</strong> {{ upload_time }}</p>
-            </div>
-            
-            <a href="{{ url_for('syllabus') }}" class="back-button">Upload Another Syllabus</a>
+      <div class="success-card">
+        <div class="success-icon">
+          <i class="material-icons">check_circle</i>
         </div>
+        <h1 class="success-title">JD Successfully Uploaded!</h1>
+        <p class="success-message">Your JD has been received and processed.</p>
+
+        <div class="success-details">
+          <p><strong>File name:</strong> {{ filename }}</p>
+          <p><strong>File size:</strong> {{ filesize }}</p>
+          <p><strong>Upload time:</strong> {{ upload_time }}</p>
+        </div>
+
+        <a href="{{ url_for('syllabus') }}" class="back-button"
+          >Upload Another JD</a
+        >
+      </div>
     </div>
 
     <footer>
-        <div class="footer-container">
-            <div class="footer-left">
-                <div class="logo">SkillTrax</div>
-                <p>Track your learning journey and create new roadmaps.</p>
-            </div>
-            <div class="footer-right">
-                <a href="#">About</a>
-                <a href="#">Privacy</a>
-                <a href="#">Terms</a>
-                <a href="#">Contact</a>
-            </div>
+      <div class="footer-container">
+        <div class="footer-left">
+          <div class="logo">SkillTrax</div>
+          <p>Track your learning journey and create new roadmaps.</p>
         </div>
+        <div class="footer-right">
+          <a href="#">About</a>
+          <a href="#">Privacy</a>
+          <a href="#">Terms</a>
+          <a href="#">Contact</a>
+        </div>
+      </div>
     </footer>
-</body>
+  </body>
 </html>

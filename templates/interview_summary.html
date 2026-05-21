@@ -12,6 +12,55 @@
       href="https://fonts.googleapis.com/icon?family=Material+Icons"
       rel="stylesheet"
     />
+    <style>
+      @media print {
+        header,
+        nav,
+        .summary-actions {
+          display: none;
+        }
+        body {
+          margin: 0;
+          padding: 0;
+          background: white;
+        }
+        .interview-container {
+          margin: 0;
+          padding: 0;
+        }
+        .interview-card {
+          box-shadow: none;
+          border: 1px solid #ddd;
+          page-break-inside: avoid;
+        }
+        .interview-header {
+          border-bottom: 2px solid #333;
+          page-break-inside: avoid;
+        }
+        .summary-grid {
+          page-break-inside: avoid;
+        }
+        .summary-card {
+          page-break-inside: avoid;
+          border: 1px solid #ccc;
+        }
+        .summary-table {
+          page-break-inside: avoid;
+          width: 100%;
+        }
+        .summary-row {
+          page-break-inside: avoid;
+          border-bottom: 1px solid #ddd;
+        }
+        .question-summary {
+          page-break-before: auto;
+        }
+        table {
+          border-collapse: collapse;
+          width: 100%;
+        }
+      }
+    </style>
   </head>
 
   <body>
@@ -112,15 +161,23 @@
         </div>
 
         <div class="summary-actions">
+          <button class="primary-btn" onclick="window.print()">
+            <span
+              class="material-icons"
+              style="vertical-align: middle; margin-right: 5px"
+              >print</span
+            >
+            Print Report
+          </button>
           {% if session_obj.preparation_id %}
           <a
-            class="primary-btn"
+            class="secondary-btn"
             href="{{ url_for('view_preparation', preparation_id=session_obj.preparation_id) }}"
             >Back to Preparation</a
           >
           {% else %}
           <a
-            class="primary-btn"
+            class="secondary-btn"
             href="{{ url_for('view_roadmap', roadmap_id=session_obj.roadmap_id) }}"
             >Back to Roadmap</a
           >
