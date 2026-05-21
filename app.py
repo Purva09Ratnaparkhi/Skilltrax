@@ -434,7 +434,7 @@ def _get_best_response(question: InterviewQuestion) -> InterviewResponse:
         return None
     return max(responses, key=lambda resp: resp.answer_score)
 
-
+#NEW function added 
 def _update_behavior_summary(session_obj: InterviewSession, behavior_scores: dict) -> None:
     summary = session_obj.behavior_summary or {}
     count = int(summary.get("responses", 0))
