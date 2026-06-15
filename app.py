@@ -28,6 +28,12 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'e49dad6ce691ff3d216bc6b4e17f
 app.config['SESSION_TYPE'] = 'filesystem'
 app.config['SESSION_PERMANENT'] = False
 app.permanent_session_lifetime = timedelta(days=7)
+
+# Hugging Face runs inside an iframe, so session cookies must be SameSite=None and Secure=True
+if os.getenv('SPACE_ID'):
+    app.config['SESSION_COOKIE_SAMESITE'] = 'None'
+    app.config['SESSION_COOKIE_SECURE'] = True
+
 Session(app)
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
