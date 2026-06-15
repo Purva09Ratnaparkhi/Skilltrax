@@ -9,6 +9,7 @@ Werkzeug==2.2.3
 SQLAlchemy==2.0.39
 langgraph==0.2.52
 langgraph-checkpoint==2.1.2
+langgraph-checkpoint-sqlite==2.0.11
 
 # PDF Processing & OCR
 PyMuPDF==1.25.4
