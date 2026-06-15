@@ -6,7 +6,11 @@ from llama_agent import roadmap_gen_pro
 from youtube_video_search import search_youtube_lectures
 from article_search import search_for_articles
 
-pytesseract.pytesseract.tesseract_cmd = r'E:/Softwares/Tesseract-OCR/tesseract.exe'
+import sys
+
+# Configure Tesseract OCR command path (only necessary on Windows local environments)
+if sys.platform.startswith('win'):
+    pytesseract.pytesseract.tesseract_cmd = r'E:/Softwares/Tesseract-OCR/tesseract.exe'
 
 
 def extract_from_scanned_pdf(pdf_path):
